@@ -28,25 +28,29 @@ class SecCrawler(object):
 
     def _make_directory(self, company_code, cik, priorto, filing_type):
         # Making the directory to save comapny filings
-        path = os.path.join(self.data_path, company_code, cik, filing_type)
+        self.full_path = os.path.join(self.data_path, company_code, cik, filing_type)
 
-        if not os.path.exists(path):
+        if not os.path.exists(self.full_path):
             try:
-                os.makedirs(path)
+                os.makedirs(self.full_path)
             except OSError as exception:
                 if exception.errno != errno.EEXIST:
                     raise
 
-    def _save_in_directory(self, company_code, cik, priorto, filing_type, docs):
+    def _save_in_directory(self, docs):
         # Save every text document into its respective folder
         for (url, doc_name) in docs:
             r = requests.get(url)
             data = r.text
-            path = os.path.join(self.data_path, company_code, cik,
-                                filing_type, doc_name)
-
+            path = os.path.join(self.full_path, doc_name)
             with open(path, "ab") as f:
                 f.write(data.encode('ascii', 'ignore'))
+
+    def _save_links_summary(self, link_list):
+        path = os.path.join(self.full_path, 'links.txt')
+        with open(path, 'w') as f:
+            for item in link_list:
+                f.write("%s\n" % item)
 
     def _find_xbrl_link(self, base_url):
         with requests.get(base_url) as r:
@@ -55,12 +59,12 @@ class SecCrawler(object):
         # store the link in the list
         link_list = [link.string for link in soup.find_all('a')]
         regex = re.compile('.*[0-9].xml')
+        file_name, file_url = None, None
         for link in link_list:
             if  link is not None and regex.match(link):
                 file_name = link
+                # replace last part of the link with the xml file name
                 file_url = '/'.join(base_url.split('/')[:-1] + [link])
-
-
         # set_trace()
         return file_url, file_name
     
@@ -71,6 +75,7 @@ class SecCrawler(object):
         # store the link in the list
         link_list = [link.string for link in soup.find_all('filinghref')]
 
+        self._save_links_summary(link_list)
         print("Number of files to download: {0}".format(len(link_list)))
         print("Starting download...")
 
@@ -85,8 +90,9 @@ class SecCrawler(object):
             xbrl_urls, doc_names = [], []
             for link in link_list:
                 xbrl_url, doc_name = self._find_xbrl_link(link)
-                xbrl_urls.append(xbrl_url)
-                doc_names.append(doc_name)
+                if xbrl_url is not None:
+                    xbrl_urls.append(xbrl_url)
+                    doc_names.append(doc_name)
                 # set_trace()
             return list(zip(xbrl_urls, doc_names))
 
@@ -117,12 +123,11 @@ class SecCrawler(object):
         docs = self._create_document_list(data, doc_type)
 
         try:
-            self._save_in_directory(
-                company_code, cik, priorto, filing_type, docs)
+            self._save_in_directory(docs)
         except Exception as e:
             print(str(e))  # Need to use str for Python 2.5
 
-        print("Successfully downloaded all the files")
+        print("Successfully downloaded {0} files ".format(len(docs)))
 
     def filing_10Q(self, company_code, cik, priorto, count):
         self._fetch_report(company_code, cik, priorto, count, '10-Q')
