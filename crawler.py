@@ -129,20 +129,20 @@ class SecCrawler(object):
 
         print("Successfully downloaded {0} files ".format(len(docs)))
 
-    def filing_10Q(self, company_code, cik, priorto, count):
-        self._fetch_report(company_code, cik, priorto, count, '10-Q')
+    def filing_10Q(self, company_code, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(company_code, cik, priorto, count, '10-Q', doc_type)
 
     def filing_10K(self, company_code, cik, priorto, count, doc_type='txt'):
         self._fetch_report(company_code, cik, priorto, count, '10-K', doc_type)
 
-    def filing_8K(self, company_code, cik, priorto, count):
-        self._fetch_report(company_code, cik, priorto, count, '8-K')
+    def filing_8K(self, company_code, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(company_code, cik, priorto, count, '8-K', doc_type)
 
-    def filing_13F(self, company_code, cik, priorto, count):
-        self._fetch_report(company_code, cik, priorto, count, '13-F')
+    def filing_13F(self, company_code, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(company_code, cik, priorto, count, '13-F', doc_type)
 
-    def filing_SD(self, company_code, cik, priorto, count):
-        self._fetch_report(company_code, cik, priorto, count, 'SD')
+    def filing_SD(self, company_code, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(company_code, cik, priorto, count, 'SD', doc_type)
 
-    def filing_4(self, company_code, cik, priorto, count):
-        self._fetch_report(company_code, cik, priorto, count, '4')
+    def filing_4(self, company_code, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(company_code, cik, priorto, count, '4', doc_type)

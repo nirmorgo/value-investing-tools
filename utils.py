@@ -3,11 +3,16 @@ import re
 import requests
 
 
-def find_and_save_10k_to_folder(ticker, from_date='20190401', type="10-K", path='./SEC-Edgar-data/', number_of_documents=5, doc_type='txt'):
+def find_and_save_10K_to_folder(ticker, from_date='20190401', path='./SEC-Edgar-data/', number_of_documents=5, doc_type='txt'):
     crawler = SecCrawler()
     cik = get_cik_from_ticker(ticker)
     crawler.filing_10K(ticker, cik, from_date, number_of_documents, doc_type)
 
+
+def find_and_save_10Q_to_folder(ticker, from_date='20190401', path='./SEC-Edgar-data/', number_of_documents=5, doc_type='txt'):
+    crawler = SecCrawler()
+    cik = get_cik_from_ticker(ticker)
+    crawler.filing_10Q(ticker, cik, from_date, number_of_documents, doc_type)
 
 
 def get_cik_from_ticker(ticker):
