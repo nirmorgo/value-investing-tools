@@ -16,9 +16,16 @@ class XBRL:
             tag.name = tag.name.lower()
 
         self.data = {}
-        self.us_gaap_tag_names_list = ["EarningsPerShareDiluted", 'EarningsPerShareBasic', 'GrossProfit', 'NetIncomeLoss', 'StockholdersEquity',
-                                        'Revenues', 'WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfSharesOutstandingBasic']
-        self.alternative_tag_names = {'Revenues': 'SalesRevenueNet'}
+        # default fields that are parsed from XBRL file
+        self.us_gaap_tag_names_list = ['EarningsPerShareDiluted', 'EarningsPerShareBasic', 'GrossProfit', 'NetIncomeLoss', 'StockholdersEquity', 'CapitalExpenditure',
+                                       'CashFlowFromOperations', 'Revenues', 'CostOfGoodsAndServicesSold', 'SellingGeneralAndAdministrativeExpense', 'ResearchAndDevelopmentExpense',
+                                       'DepreciationDepletionAndAmortization', 'OperatingIncomeLoss',
+                                       'WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfSharesOutstandingBasic']
+        self.alternative_tag_names = {'Revenues': 'SalesRevenueNet', 
+                                      'CashFlowFromOperations': 'NetCashProvidedByUsedInOperatingActivities', 
+                                      'CapitalExpenditure': 'PaymentsToAcquirePropertyPlantAndEquipment'}
+
+        # Add additional tags selected by user                              
         self.us_gaap_tag_names_list += extra_tags
 
         self.ytd4_finder = re.compile('FD[0-9]+Q4YTD$')
@@ -85,11 +92,5 @@ class XBRL:
     def get_data_df(self):
         return self.data_df
         
-
-# path = '/home/nir/Projects/stock-value-calculator/SEC-Edgar-Data/aapl/0000320193/10-K/aapl-20180929.xml'
-path = '/home/nir/Projects/stock-value-calculator/SEC-Edgar-Data/aapl/0000320193/10-K/aapl-20170930.xml'
-xbrl = XBRL(path)
-data = xbrl.get_data_df()
-print(data.transpose())
 
        
