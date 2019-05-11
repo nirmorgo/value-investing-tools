@@ -19,7 +19,7 @@ class XBRL:
         # default fields that are parsed from XBRL file
         self.us_gaap_tag_names_list = ['EarningsPerShareDiluted', 'EarningsPerShareBasic', 'GrossProfit', 'NetIncomeLoss', 'StockholdersEquity', 'CapitalExpenditure',
                                        'CashFlowFromOperations', 'Revenues', 'CostOfGoodsAndServicesSold', 'SellingGeneralAndAdministrativeExpense', 'ResearchAndDevelopmentExpense',
-                                       'DepreciationDepletionAndAmortization', 'OperatingIncomeLoss',
+                                       'DepreciationDepletionAndAmortization', 'OperatingIncomeLoss', 'LongTermDebtNoncurrent'
                                        'WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfSharesOutstandingBasic']
         self.alternative_tag_names = {'Revenues': 'SalesRevenueNet', 
                                       'CashFlowFromOperations': 'NetCashProvidedByUsedInOperatingActivities', 
@@ -48,7 +48,8 @@ class XBRL:
         return self.raw_data.find_all(tag_name)
 
     def find_YTD_data(self, tag_name, allow_last_q_data=True):
-        self.data[tag_name] = {}
+        if tag_name not in self.data.keys():
+            self.data[tag_name] = {}
         tags = self._find_us_gaap_tags(tag_name)
         found = False
         for tag in tags:
@@ -67,7 +68,6 @@ class XBRL:
                     found = True
 
         if not found and tag_name in self.alternative_tag_names.keys():
-            # set_trace()
             alt_tag_name = self.alternative_tag_names[tag_name].lower()
             alt_tag_name = "us-gaap:" + alt_tag_name
             tags = self._find_us_gaap_tags(alt_tag_name)
@@ -86,6 +86,21 @@ class XBRL:
         for tag_name in self.us_gaap_tag_names_list:
             self.find_YTD_data(tag_name)
 
+    def add_additional_xbrl_file(self, xbrl_path):
+        '''
+        will update the data summary and dataframe
+        notice that self.raw_data will get overwritten
+        '''
+        with open(xbrl_path, 'r') as fh:
+            self.raw_data = BeautifulSoup(fh, "lxml")
+        
+        for tag in self.raw_data.find_all():
+            tag.name = tag.name.lower()
+        
+        self._parse_xbrl()
+        self.data_df = pd.DataFrame(self.data)
+
+    
     def get_data(self):
         return self.data
 
