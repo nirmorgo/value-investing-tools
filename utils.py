@@ -1,15 +1,22 @@
 from crawler import SecCrawler
 import re
 import requests
+import os
+import sys
+from datetime import datetime
 
 
-def find_and_save_10K_to_folder(ticker, from_date='20190401', path='./SEC-Edgar-data/', number_of_documents=5, doc_type='txt'):
+def find_and_save_10K_to_folder(ticker, from_date=None, number_of_documents=5, doc_type='xbrl'):
+    if from_date is None:
+        from_date = datetime.today().strftime('%Y%m%d')
     crawler = SecCrawler()
     cik = get_cik_from_ticker(ticker)
     crawler.filing_10K(ticker, cik, from_date, number_of_documents, doc_type)
 
 
-def find_and_save_10Q_to_folder(ticker, from_date='20190401', path='./SEC-Edgar-data/', number_of_documents=5, doc_type='txt'):
+def find_and_save_10Q_to_folder(ticker, from_date=None, number_of_documents=5, doc_type='xbrl'):
+    if from_date is None:
+        from_date = datetime.today().strftime('%Y%m%d')
     crawler = SecCrawler()
     cik = get_cik_from_ticker(ticker)
     crawler.filing_10Q(ticker, cik, from_date, number_of_documents, doc_type)
@@ -38,3 +45,21 @@ def get_name_from_ticker(ticker):
             return x['name']
     print('couldnt find company name....')
     return None
+
+
+def get_reports_list(ticker, cik=None, report_type='10-K', file_type='xbrl', data_folder='./SEC-Edgar-Data/'):
+    if cik is None:
+        cik = get_cik_from_ticker(ticker)
+    report_type += '/'
+    path = os.path.join(data_folder, ticker, cik, report_type)
+    if not os.path.isdir(path):
+        print(f'could not find {ticker} folder')
+        sys.exit()
+    if file_type == 'xbrl':
+        files = [os.path.join(path, f) for f in os.listdir(
+            path) if re.match(r'.*[0-9]+.xml', f)]
+    elif file_type == 'txt':
+        files = [os.path.join(path, f) for f in os.listdir(
+            path) if re.match(r'.*[0-9]+.txt', f)]
+
+    return files
