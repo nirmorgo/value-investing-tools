@@ -1,6 +1,6 @@
 # This script will download all the 10-K, 10-Q and 8-K
 # provided that of company symbol and its cik code.
-# shamelessly borrowed from https://github.com/coyo8/sec-edgar and slightly modified 
+# shamelessly borrowed from https://github.com/coyo8/sec-edgar and slightly modified
 # so it can scrape for xbrl files instead of txt
 
 from __future__ import print_function  # Compatibility with Python 2
@@ -26,9 +26,10 @@ class SecCrawler(object):
     def __repr__(self):
         return "SecCrawler(data_path={0})".format(self.data_path)
 
-    def _make_directory(self, company_code, cik, priorto, filing_type):
+    def _make_directory(self, company_code, priorto, filing_type):
         # Making the directory to save comapny filings
-        self.full_path = os.path.join(self.data_path, company_code, cik, filing_type)
+        self.full_path = os.path.join(
+            self.data_path, company_code, filing_type)
 
         if not os.path.exists(self.full_path):
             try:
@@ -61,13 +62,13 @@ class SecCrawler(object):
         regex = re.compile('.*[0-9].xml')
         file_name, file_url = None, None
         for link in link_list:
-            if  link is not None and regex.match(link):
+            if link is not None and regex.match(link):
                 file_name = link
                 # replace last part of the link with the xml file name
                 file_url = '/'.join(base_url.split('/')[:-1] + [link])
         # set_trace()
         return file_url, file_name
-    
+
     def _create_document_list(self, data, doc_type='txt'):
         # parse fetched data using beatifulsoup
         # Explicit parser needed
@@ -108,7 +109,7 @@ class SecCrawler(object):
 
     def _fetch_report(self, company_code, cik, priorto, count, filing_type, doc_type='txt'):
         priorto = self._sanitize_date(priorto)
-        self._make_directory(company_code, cik, priorto, filing_type)
+        self._make_directory(company_code, priorto, filing_type)
 
         # generate the url to crawl
         base_url = "http://www.sec.gov/cgi-bin/browse-edgar"
