@@ -61,6 +61,3 @@ def get_reports_list(ticker, report_type='10-K', file_type='xbrl', data_folder='
             path) if re.match(r'.*[0-9]+.txt', f)]
 
     return files
-
-find_and_save_10K_to_folder('fb')
-print(get_reports_list('fb'))
