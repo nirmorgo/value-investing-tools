@@ -1,0 +1,22 @@
+US_GAPP_TAGS_LIST = ['EarningsPerShareDiluted',
+                     'EarningsPerShareBasic',
+                     'GrossProfit',
+                     'NetIncomeLoss',
+                     'StockholdersEquity',
+                     'CapitalExpenditure',
+                     'CashFlowFromOperations',
+                     'Revenues',
+                     'CostOfGoodsAndServicesSold',
+                     'SellingGeneralAndAdministrativeExpense',
+                     'ResearchAndDevelopmentExpense',
+                     'DepreciationAndAmortization',
+                     'OperatingIncomeLoss',
+                     'LongTermDebtNoncurrent',
+                     'WeightedAverageNumberOfDilutedSharesOutstanding',
+                     'WeightedAverageNumberOfSharesOutstandingBasic']
+
+ALTERNATIVE_TAG_NAMES = {'Revenues': ['SalesRevenueNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'],
+                         'CashFlowFromOperations': 'NetCashProvidedByUsedInOperatingActivities',
+                         'CapitalExpenditure': 'PaymentsToAcquirePropertyPlantAndEquipment',
+                         'CostOfGoodsAndServicesSold': 'CostOfRevenue',
+                         'DepreciationAndAmortization': 'DepreciationDepletionAndAmortization'}

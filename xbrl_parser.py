@@ -5,6 +5,8 @@ from ipdb import set_trace
 import pandas as pd
 from datetime import datetime
 
+from xbrl_config import US_GAPP_TAGS_LIST, ALTERNATIVE_TAG_NAMES
+
 
 class XBRL:
 
@@ -13,15 +15,10 @@ class XBRL:
         self.data = {}
         self.YTD_contexts = {}
         self.Q4_contexts = {}
-        
+
         # default fields that are parsed from XBRL file
-        self.us_gaap_tag_names_list = ['EarningsPerShareDiluted', 'EarningsPerShareBasic', 'GrossProfit', 'NetIncomeLoss', 'StockholdersEquity', 'CapitalExpenditure',
-                                       'CashFlowFromOperations', 'Revenues', 'CostOfGoodsAndServicesSold', 'SellingGeneralAndAdministrativeExpense', 'ResearchAndDevelopmentExpense',
-                                       'DepreciationDepletionAndAmortization', 'OperatingIncomeLoss', 'LongTermDebtNoncurrent'
-                                       'WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfSharesOutstandingBasic']
-        self.alternative_tag_names = {'Revenues': 'SalesRevenueNet',
-                                      'CashFlowFromOperations': 'NetCashProvidedByUsedInOperatingActivities',
-                                      'CapitalExpenditure': 'PaymentsToAcquirePropertyPlantAndEquipment'}
+        self.us_gaap_tag_names_list = US_GAPP_TAGS_LIST
+        self.alternative_tag_names = ALTERNATIVE_TAG_NAMES
 
         # Add additional tags selected by user
         self.us_gaap_tag_names_list += extra_tags
@@ -33,7 +30,6 @@ class XBRL:
             for tag in self.raw_data.find_all():
                 tag.name = tag.name.lower()
 
-            self._define_relevant_contexts()
             self._parse_xbrl()
             self.data_df = pd.DataFrame(self.data)
 
@@ -111,6 +107,22 @@ class XBRL:
                 self.data[tag_name][year] = float(tag.text)
                 found = True
 
+        if not found and tag_name in self.alternative_tag_names.keys():
+            alt_tag_names = self.alternative_tag_names[tag_name]
+            if type(alt_tag_names) is not list:
+                alt_tag_names = [alt_tag_names]
+            for alt_tag_name in alt_tag_names:
+                alt_tag_name = "us-gaap:" + alt_tag_name.lower()
+                tags = self._find_us_gaap_tags(alt_tag_name)
+                for tag in tags:
+                    context = tag.attrs['contextref']
+                    if context in self.YTD_contexts.keys():
+                        year = self.YTD_contexts[context]
+                        self.data[tag_name][year] = float(tag.text)
+                        found = True
+                if found:
+                    break
+
         if not found and allow_last_q_data:
             for tag in tags:
                 context = tag.attrs['contextref']
@@ -119,21 +131,11 @@ class XBRL:
                     self.data[tag_name][year] = float(tag.text)
                     found = True
 
-        if not found and tag_name in self.alternative_tag_names.keys():
-            alt_tag_name = self.alternative_tag_names[tag_name].lower()
-            alt_tag_name = "us-gaap:" + alt_tag_name
-            tags = self._find_us_gaap_tags(alt_tag_name)
-            for tag in tags:
-                context = tag.attrs['contextref']
-                if context in self.YTD_contexts.keys():
-                    year = self.YTD_contexts[context]
-                    self.data[tag_name][year] = float(tag.text)
-                    found = True
-
     def _parse_xbrl(self):
         '''
         parse the xml and find data of all the predefined field names
         '''
+        self._define_relevant_contexts()
         for tag_name in self.us_gaap_tag_names_list:
             self.find_YTD_data(tag_name)
 
