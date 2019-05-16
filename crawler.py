@@ -141,6 +141,9 @@ class SecCrawler(object):
 
     def filing_13F(self, company_code, cik, priorto, count, doc_type='txt'):
         self._fetch_report(company_code, cik, priorto, count, '13-F', doc_type)
+    
+    def filing_20F(self, company_code, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(company_code, cik, priorto, count, '20-F', doc_type)
 
     def filing_SD(self, company_code, cik, priorto, count, doc_type='txt'):
         self._fetch_report(company_code, cik, priorto, count, 'SD', doc_type)
