@@ -3,7 +3,11 @@ import re
 import requests
 import os
 import sys
-from datetime import datetime
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+# add config.py file which contains your https://www.worldtradingdata.com/ API key
+from config import WTD_api_key
 
 
 def find_and_save_10K_to_folder(ticker, from_date=None, number_of_documents=40, doc_type='xbrl'):
@@ -20,6 +24,7 @@ def find_and_save_10Q_to_folder(ticker, from_date=None, number_of_documents=40, 
     crawler = SecCrawler()
     cik = get_cik_from_ticker(ticker)
     crawler.filing_10Q(ticker, cik, from_date, number_of_documents, doc_type)
+
 
 def find_and_save_20F_to_folder(ticker, from_date=None, number_of_documents=40, doc_type='xbrl'):
     if from_date is None:
@@ -68,3 +73,34 @@ def get_reports_list(ticker, report_type='10-K', file_type='xbrl', data_folder='
             path) if re.match(r'.*[0-9]+.txt', f)]
 
     return files
+
+
+def get_historical_stock_price(ticker, years=10, api='WTD'):
+    start_date = (datetime.now() - timedelta(days=years*365)
+                  ).strftime('%Y-%m-%d')
+    if api == 'WTD':
+        request_url = f'https://www.worldtradingdata.com/api/v1/history?symbol={ticker}&sort=newest&api_token={WTD_api_key}&date_from={start_date}'
+        content = requests.get(request_url)
+        data = content.json()
+        df = pd.DataFrame.from_dict(data['history'], orient='index')
+        df.index = pd.to_datetime(df.index)
+        df = df.apply(pd.to_numeric, errors='coerce')
+    return df
+
+
+def estimate_stock_split_adjustments(stock_count):
+    '''
+    gets a series of stock prices, estimates if there were major stock splits
+    returns an adjusted stock_count
+    '''
+    multiplier = 1
+    counts = stock_count.values
+    adjusted_count = pd.Series(0, index=stock_count.index)
+    adjusted_count.iloc[-1] = counts[-1]
+    for idx, count in reversed(list(enumerate(counts[:-1]))):
+        ratio = stock_count.iloc[idx + 1] / count
+        if ratio > 1.7:  # assuming that the split is an integer > 2
+            multiplier *= np.round(ratio)
+        adjusted_count.iloc[idx] = count * multiplier
+
+    return adjusted_count
