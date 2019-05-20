@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 import datetime
 from ipdb import set_trace
 import re
+from tqdm import tqdm
 
 DEFAULT_DATA_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '.', 'SEC-Edgar-Data'))
@@ -26,6 +27,16 @@ class SecCrawler(object):
     def __repr__(self):
         return "SecCrawler(data_path={0})".format(self.data_path)
 
+    def _get_name_from_ticker(self, ticker):
+        url = "http://d.yimg.com/autoc.finance.yahoo.com/autoc?query={}&region=1&lang=en".format(
+            ticker)
+        result = requests.get(url).json()
+        for x in result['ResultSet']['Result']:
+            if x['symbol'] == ticker:
+                return x['name']
+        print('couldnt find company name....')
+        return ticker
+    
     def _make_directory(self, company_code, priorto, filing_type):
         # Making the directory to save comapny filings
         self.full_path = os.path.join(
@@ -40,10 +51,12 @@ class SecCrawler(object):
 
     def _save_in_directory(self, docs):
         # Save every text document into its respective folder
-        for (url, doc_name) in docs:
+        for url, doc_name in tqdm(docs):
+            path = os.path.join(self.full_path, doc_name)
+            if os.path.isfile(path):
+                continue
             r = requests.get(url)
             data = r.text
-            path = os.path.join(self.full_path, doc_name)
             with open(path, "ab") as f:
                 f.write(data.encode('ascii', 'ignore'))
 
@@ -75,27 +88,25 @@ class SecCrawler(object):
         soup = BeautifulSoup(data, features='html.parser')
         # store the link in the list
         link_list = [link.string for link in soup.find_all('filinghref')]
-
         self._save_links_summary(link_list)
-        print("Number of files to download: {0}".format(len(link_list)))
-        print("Starting download...")
 
         # List of url to the text documents
         if doc_type == 'txt':
-            txt_urls = [link[:link.rfind("-")] + ".txt" for link in link_list]
+            urls = [link[:link.rfind("-")] + ".txt" for link in link_list]
             # List of document doc_names
-            doc_names = [url.split("/")[-1] for url in txt_urls]
-            return list(zip(txt_urls, doc_names))
+            doc_names = [url.split("/")[-1] for url in urls]
 
         elif doc_type == 'xbrl':
-            xbrl_urls, doc_names = [], []
+            urls, doc_names = [], []
             for link in link_list:
                 xbrl_url, doc_name = self._find_xbrl_link(link)
                 if xbrl_url is not None:
-                    xbrl_urls.append(xbrl_url)
+                    urls.append(xbrl_url)
                     doc_names.append(doc_name)
-                # set_trace()
-            return list(zip(xbrl_urls, doc_names))
+            
+        print("Number of files to download: {0}".format(len(doc_names)))
+        print("Starting download...")   
+        return list(zip(urls, doc_names))
 
     def _sanitize_date(self, date):
         if isinstance(date, datetime.datetime):
@@ -108,6 +119,7 @@ class SecCrawler(object):
                 raise TypeError('Date must be of the form YYYYMMDD')
 
     def _fetch_report(self, company_code, cik, priorto, count, filing_type, doc_type='txt'):
+        company_name = self._get_name_from_ticker(company_code)
         priorto = self._sanitize_date(priorto)
         self._make_directory(company_code, priorto, filing_type)
 
@@ -115,8 +127,8 @@ class SecCrawler(object):
         base_url = "http://www.sec.gov/cgi-bin/browse-edgar"
         params = {'action': 'getcompany', 'owner': 'exclude', 'output': 'xml',
                   'CIK': cik, 'type': filing_type, 'dateb': priorto, 'count': count}
-        print("started {filing_type} {company_code}".format(
-            filing_type=filing_type, company_code=company_code))
+        print("started {filing_type} documents scraping for  {company_name}".format(
+            filing_type=filing_type, company_name=company_name))
         with requests.get(base_url, params=params) as r:
             data = r.text
 

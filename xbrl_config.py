@@ -12,11 +12,13 @@ US_GAPP_TAGS_LIST = ['EarningsPerShareDiluted',
                      'DepreciationAndAmortization',
                      'OperatingIncomeLoss',
                      'LongTermDebtNoncurrent',
-                     'WeightedAverageNumberOfDilutedSharesOutstanding',
-                     'WeightedAverageNumberOfSharesOutstandingBasic']
+                     'NumberOfDilutedShares',
+                     'NumberOfShares']
 
-ALTERNATIVE_TAG_NAMES = {'Revenues': ['SalesRevenueNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'],
+ALTERNATIVE_TAG_NAMES = {'Revenues': ['SalesRevenueNet', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'SalesRevenueGoodsNet'],
                          'CashFlowFromOperations': 'NetCashProvidedByUsedInOperatingActivities',
                          'CapitalExpenditure': 'PaymentsToAcquirePropertyPlantAndEquipment',
                          'CostOfGoodsAndServicesSold': 'CostOfRevenue',
-                         'DepreciationAndAmortization': 'DepreciationDepletionAndAmortization'}
+                         'DepreciationAndAmortization': 'DepreciationDepletionAndAmortization',
+                         'NumberOfDilutedShares': 'WeightedAverageNumberOfDilutedSharesOutstanding',
+                         'NumberOfShares': 'WeightedAverageNumberOfSharesOutstandingBasic'}

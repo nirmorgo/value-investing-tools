@@ -1,7 +1,6 @@
 # from lxml import etree
 import re
 from bs4 import BeautifulSoup
-from ipdb import set_trace
 import pandas as pd
 from datetime import datetime
 
@@ -15,6 +14,7 @@ class XBRL:
         self.data = {}
         self.YTD_contexts = {}
         self.Q4_contexts = {}
+        self.Q3_contexts = {}
 
         # default fields that are parsed from XBRL file
         self.us_gaap_tag_names_list = US_GAPP_TAGS_LIST
@@ -41,6 +41,7 @@ class XBRL:
             name=re.compile("context", re.IGNORECASE | re.MULTILINE))
         YTD_contexts = {}
         Q4_contexts = {}
+        Q3_contexts = {}
         for tag in all_context_tags:
             for inner_tag in tag.find_all():
                 name = inner_tag.name
@@ -69,22 +70,27 @@ class XBRL:
 
             if period.instant is not None:
                 date = re.sub("[^0-9]", "", period.instant.text)
+                year = int(date[:4])
                 if int(date[4:6]) >= 8:  # suspected to be the 4th qurter
-                    year = int(date[:4])
                     if year not in Q4_contexts.keys():
                         Q4_contexts[year] = tag.attrs['id']
                     else:
                         if len(tag.attrs['id']) < len(Q4_contexts[year]):
                             Q4_contexts[year] = tag.attrs['id']
+                elif 5 <= int(date[4:6]) < 8:
+                    if year not in Q3_contexts.keys():
+                        Q3_contexts[year] = tag.attrs['id']
+                    else:
+                        if len(tag.attrs['id']) < len(Q3_contexts[year]):
+                            Q3_contexts[year] = tag.attrs['id']
 
         # flip the keys and values for later use
         for year in YTD_contexts.keys():
             self.YTD_contexts[YTD_contexts[year]] = year
         for year in Q4_contexts.keys():
             self.Q4_contexts[Q4_contexts[year]] = year
-
-        # print(self.YTD_contexts)
-        # print(self.Q4_contexts)
+        for year in Q3_contexts.keys():
+            self.Q3_contexts[Q3_contexts[year]] = year
 
     def _find_us_gaap_tags(self, tag_name):
         tag_name = tag_name.lower()
@@ -95,7 +101,7 @@ class XBRL:
             tag_name = "us-gaap:" + tag_name
         return self.raw_data.find_all(tag_name)
 
-    def find_YTD_data(self, tag_name, allow_last_q_data=True):
+    def find_YTD_data(self, tag_name, allow_Q4_data=True, allow_Q3_data=True):
         if tag_name not in self.data.keys():
             self.data[tag_name] = {}
         tags = self._find_us_gaap_tags(tag_name)
@@ -123,11 +129,21 @@ class XBRL:
                 if found:
                     break
 
-        if not found and allow_last_q_data:
+        if not found and allow_Q4_data:
             for tag in tags:
                 context = tag.attrs['contextref']
-                if allow_last_q_data and context in self.Q4_contexts.keys():
+                if context in self.Q4_contexts.keys():
                     year = self.Q4_contexts[context]
+                    self.data[tag_name][year] = float(tag.text)
+                    found = True
+                if found:
+                    break
+
+        if not found and allow_Q3_data:
+            for tag in tags:
+                context = tag.attrs['contextref']
+                if context in self.Q3_contexts.keys():
+                    year = self.Q3_contexts[context]
                     self.data[tag_name][year] = float(tag.text)
                     found = True
 
