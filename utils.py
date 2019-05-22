@@ -6,8 +6,8 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-# add config.py file which contains your https://www.worldtradingdata.com/ API key
-from config import WTD_api_key
+# add config.py file which contains https://www.worldtradingdata.com/ and https://simfin.com/data/access/api API keys
+from config import WTD_api_key, simfin_api_key
 
 
 def find_and_save_10K_to_folder(ticker, from_date=None, number_of_documents=40, doc_type='xbrl'):
@@ -49,14 +49,15 @@ def get_cik_from_ticker(ticker):
 
 
 def get_name_from_ticker(ticker):
-    url = "http://d.yimg.com/autoc.finance.yahoo.com/autoc?query={}&region=1&lang=en".format(
-        ticker)
-    result = requests.get(url).json()
-    for x in result['ResultSet']['Result']:
-        if x['symbol'] == ticker:
-            return x['name']
-    print('couldnt find company name....')
-    return None
+    request_url = f'https://simfin.com/api/v1/info/find-id/ticker/{ticker}?api-key={simfin_api_key}'
+    content = requests.get(request_url)
+    content = content.json()
+    try:
+        name = content[0]['name']
+        return name
+    except:
+        print('couldnt find company name....')
+        return None
 
 
 def get_reports_list(ticker, report_type='10-K', file_type='xbrl', data_folder='./SEC-Edgar-Data/'):
@@ -76,6 +77,9 @@ def get_reports_list(ticker, report_type='10-K', file_type='xbrl', data_folder='
 
 
 def get_historical_stock_price(ticker, years=10, api='WTD'):
+    '''
+    use world trading data to get stock price history (need to have api key set in config.py file) 
+    '''
     start_date = (datetime.now() - timedelta(days=years*365)
                   ).strftime('%Y-%m-%d')
     if api == 'WTD':
@@ -104,3 +108,21 @@ def estimate_stock_split_adjustments(stock_count):
         adjusted_count.iloc[idx] = count * multiplier
 
     return adjusted_count
+
+
+def get_simfin_TTM_data(ticker):
+    '''
+    use simfin API to get TTM data (need to have api key set in config.py file) 
+    '''
+    request_url = f'https://simfin.com/api/v1/info/find-id/ticker/{ticker}?api-key={simfin_api_key}'
+    content = requests.get(request_url)
+    content = content.json()
+    sim_id = content[0]['simId']
+    request_url = f'https://simfin.com/api/v1/companies/id/{sim_id}/ratios?api-key={simfin_api_key}'
+    content = requests.get(request_url)
+    content = content.json()
+    TTM_data = {}
+    for ratio in content:
+        TTM_data[ratio['indicatorName']] = float(ratio['value'])
+
+    return TTM_data

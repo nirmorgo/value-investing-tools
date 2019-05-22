@@ -1,18 +1,16 @@
 # This script will download all the 10-K, 10-Q and 8-K
 # provided that of company symbol and its cik code.
-# shamelessly borrowed from https://github.com/coyo8/sec-edgar and slightly modified
+# shamelessly borrowed from https://github.com/coyo8/sec-edgar and modified
 # so it can scrape for xbrl files instead of txt
-
-from __future__ import print_function  # Compatibility with Python 2
 
 import requests
 import os
 import errno
 from bs4 import BeautifulSoup
 import datetime
-from ipdb import set_trace
 import re
 from tqdm import tqdm
+from config import simfin_api_key
 
 DEFAULT_DATA_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '.', 'SEC-Edgar-Data'))
@@ -28,19 +26,20 @@ class SecCrawler(object):
         return "SecCrawler(data_path={0})".format(self.data_path)
 
     def _get_name_from_ticker(self, ticker):
-        url = "http://d.yimg.com/autoc.finance.yahoo.com/autoc?query={}&region=1&lang=en".format(
-            ticker)
-        result = requests.get(url).json()
-        for x in result['ResultSet']['Result']:
-            if x['symbol'] == ticker:
-                return x['name']
-        print('couldnt find company name....')
+        request_url = f'https://simfin.com/api/v1/info/find-id/ticker/{ticker}?api-key={simfin_api_key}'
+        content = requests.get(request_url)
+        content = content.json()
+        try:
+            name = content[0]['name']
+            return name
+        except:
+            print('couldnt find company name....')
         return ticker
-    
-    def _make_directory(self, company_code, priorto, filing_type):
+
+    def _make_directory(self, ticker, priorto, filing_type):
         # Making the directory to save comapny filings
         self.full_path = os.path.join(
-            self.data_path, company_code, filing_type)
+            self.data_path, ticker, filing_type)
 
         if not os.path.exists(self.full_path):
             try:
@@ -103,9 +102,9 @@ class SecCrawler(object):
                 if xbrl_url is not None:
                     urls.append(xbrl_url)
                     doc_names.append(doc_name)
-            
+
         print("Number of files to download: {0}".format(len(doc_names)))
-        print("Starting download...")   
+        print("Starting download...")
         return list(zip(urls, doc_names))
 
     def _sanitize_date(self, date):
@@ -118,16 +117,16 @@ class SecCrawler(object):
             if date < 10**7 or date > 10**8:
                 raise TypeError('Date must be of the form YYYYMMDD')
 
-    def _fetch_report(self, company_code, cik, priorto, count, filing_type, doc_type='txt'):
-        company_name = self._get_name_from_ticker(company_code)
+    def _fetch_report(self, ticker, cik, priorto, count, filing_type, doc_type='txt'):
+        company_name = self._get_name_from_ticker(ticker)
         priorto = self._sanitize_date(priorto)
-        self._make_directory(company_code, priorto, filing_type)
+        self._make_directory(ticker, priorto, filing_type)
 
         # generate the url to crawl
         base_url = "http://www.sec.gov/cgi-bin/browse-edgar"
         params = {'action': 'getcompany', 'owner': 'exclude', 'output': 'xml',
                   'CIK': cik, 'type': filing_type, 'dateb': priorto, 'count': count}
-        print("started {filing_type} documents scraping for  {company_name}".format(
+        print("started {filing_type} documents scraping for {company_name}".format(
             filing_type=filing_type, company_name=company_name))
         with requests.get(base_url, params=params) as r:
             data = r.text
@@ -138,27 +137,27 @@ class SecCrawler(object):
         try:
             self._save_in_directory(docs)
         except Exception as e:
-            print(str(e))  # Need to use str for Python 2.5
+            print(str(e))
 
         print("Successfully downloaded {0} files ".format(len(docs)))
 
-    def filing_10Q(self, company_code, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(company_code, cik, priorto, count, '10-Q', doc_type)
+    def filing_10Q(self, ticker, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, priorto, count, '10-Q', doc_type)
 
-    def filing_10K(self, company_code, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(company_code, cik, priorto, count, '10-K', doc_type)
+    def filing_10K(self, ticker, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, priorto, count, '10-K', doc_type)
 
-    def filing_8K(self, company_code, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(company_code, cik, priorto, count, '8-K', doc_type)
+    def filing_8K(self, ticker, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, priorto, count, '8-K', doc_type)
 
-    def filing_13F(self, company_code, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(company_code, cik, priorto, count, '13-F', doc_type)
-    
-    def filing_20F(self, company_code, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(company_code, cik, priorto, count, '20-F', doc_type)
+    def filing_13F(self, ticker, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, priorto, count, '13-F', doc_type)
 
-    def filing_SD(self, company_code, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(company_code, cik, priorto, count, 'SD', doc_type)
+    def filing_20F(self, ticker, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, priorto, count, '20-F', doc_type)
 
-    def filing_4(self, company_code, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(company_code, cik, priorto, count, '4', doc_type)
+    def filing_SD(self, ticker, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, priorto, count, 'SD', doc_type)
+
+    def filing_4(self, ticker, cik, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, priorto, count, '4', doc_type)

@@ -3,6 +3,7 @@ import re
 from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
+from ipdb import set_trace
 
 from xbrl_config import US_GAPP_TAGS_LIST, ALTERNATIVE_TAG_NAMES
 
@@ -36,28 +37,26 @@ class XBRL:
     def __str__(self):
         return str(self.data)
 
-    def _define_relevant_contexts(self):
+    def _find_YTD_contexts(self):
         all_context_tags = self.raw_data.find_all(
             name=re.compile("context", re.IGNORECASE | re.MULTILINE))
         YTD_contexts = {}
-        Q4_contexts = {}
-        Q3_contexts = {}
         for tag in all_context_tags:
             for inner_tag in tag.find_all():
+                # cleaning the inner tags
                 name = inner_tag.name
                 if ':' in name:
                     name = name.split(':')[-1]
                 inner_tag.name = name.lower()
             startdate = tag.find('startdate')
             enddate = tag.find('enddate')
-            period = tag.find(re.compile('period'))
             if startdate is not None:
                 startdate = re.sub("[^0-9]", "", startdate.text)
                 enddate = re.sub("[^0-9]", "", enddate.text)
                 tdelta = datetime.strptime(
                     enddate, "%Y%m%d") - datetime.strptime(startdate, "%Y%m%d")
                 if tdelta.days > 360 and "us-gaap" not in tag.attrs['id']:
-                    if int(enddate[4:6]) > 6:
+                    if int(enddate[4:6]) >= 6:
                         year = int(enddate[:4])
                     else:
                         year = int(startdate[:4])
@@ -67,6 +66,27 @@ class XBRL:
                     else:
                         if len(tag.attrs['id']) < len(YTD_contexts[year]):
                             YTD_contexts[year] = tag.attrs['id']
+
+        # flip the keys and values for later use
+        for year in YTD_contexts.keys():
+            self.YTD_contexts[YTD_contexts[year]] = year
+
+    def _find_endyearQ_contexts(self):
+        '''
+        Find context of end-of-year qurters contexts that represent the state at the end of the year
+        '''
+        all_context_tags = self.raw_data.find_all(
+            name=re.compile("context", re.IGNORECASE | re.MULTILINE))
+        Q4_contexts = {}
+        Q3_contexts = {}
+        for tag in all_context_tags:
+            for inner_tag in tag.find_all():
+                 # cleaning the inner tags
+                name = inner_tag.name
+                if ':' in name:
+                    name = name.split(':')[-1]
+                inner_tag.name = name.lower()
+            period = tag.find(re.compile('period'))
 
             if period.instant is not None:
                 date = re.sub("[^0-9]", "", period.instant.text)
@@ -85,8 +105,6 @@ class XBRL:
                             Q3_contexts[year] = tag.attrs['id']
 
         # flip the keys and values for later use
-        for year in YTD_contexts.keys():
-            self.YTD_contexts[YTD_contexts[year]] = year
         for year in Q4_contexts.keys():
             self.Q4_contexts[Q4_contexts[year]] = year
         for year in Q3_contexts.keys():
@@ -101,7 +119,7 @@ class XBRL:
             tag_name = "us-gaap:" + tag_name
         return self.raw_data.find_all(tag_name)
 
-    def find_YTD_data(self, tag_name, allow_Q4_data=True, allow_Q3_data=True):
+    def _find_YTD_data(self, tag_name, allow_Q4_data=True, allow_Q3_data=True):
         if tag_name not in self.data.keys():
             self.data[tag_name] = {}
         tags = self._find_us_gaap_tags(tag_name)
@@ -126,8 +144,6 @@ class XBRL:
                         year = self.YTD_contexts[context]
                         self.data[tag_name][year] = float(tag.text)
                         found = True
-                if found:
-                    break
 
         if not found and allow_Q4_data:
             for tag in tags:
@@ -136,8 +152,6 @@ class XBRL:
                     year = self.Q4_contexts[context]
                     self.data[tag_name][year] = float(tag.text)
                     found = True
-                if found:
-                    break
 
         if not found and allow_Q3_data:
             for tag in tags:
@@ -149,16 +163,17 @@ class XBRL:
 
     def _parse_xbrl(self):
         '''
-        parse the xml and find data of all the predefined field names
+        parse the xml and find data of all the predefined field in YTD contexts
         '''
-        self._define_relevant_contexts()
+        self._find_YTD_contexts()
+        self._find_endyearQ_contexts()
         for tag_name in self.us_gaap_tag_names_list:
-            self.find_YTD_data(tag_name)
+            self._find_YTD_data(tag_name)
 
-    def add_additional_xbrl_file(self, xbrl_path):
+    def load_xbrl_file(self, xbrl_path):
         '''
         will update the data summary and dataframe
-        notice that self.raw_data will get overwritten
+        can add additional file on top of existing one, but notice that self.raw_data will get overwritten
         '''
         with open(xbrl_path, 'r') as fh:
             self.raw_data = BeautifulSoup(fh, "lxml")
