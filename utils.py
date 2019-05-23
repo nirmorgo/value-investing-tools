@@ -123,6 +123,7 @@ def get_simfin_TTM_data(ticker):
     content = content.json()
     TTM_data = {}
     for ratio in content:
-        TTM_data[ratio['indicatorName']] = float(ratio['value'])
+        if ratio['value'] is not None:
+            TTM_data[ratio['indicatorName']] = float(ratio['value'])
 
     return TTM_data

@@ -3,8 +3,9 @@ import requests
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
-from utils import find_and_save_10K_to_folder, find_and_save_20F_to_folder, get_simfin_TTM_data
+from utils import find_and_save_10K_to_folder, get_simfin_TTM_data
 from utils import get_historical_stock_price, get_reports_list, estimate_stock_split_adjustments
+from valuation_funcs import calculate_cagr_of_time_series
 from xbrl_parser import XBRL
 from ipdb import set_trace
 
@@ -80,17 +81,29 @@ def main():
     yearly_prices.index = yearly_prices.index.year
 
     data['StockPrice'] = yearly_prices
-    print('-----------------------------------------------------------------')
-    print('----------------------Fundamental data:--------------------------')
-    print('-----------------------------------------------------------------')
+    print('-------------------------------------------------------------------------------------')
+    print('--------------------------------Fundamental data:------------------------------------')
+    print('-------------------------------------------------------------------------------------')
     print(data.transpose())
-    print('-----------------------------------------------------------------')
-    print('--------------------Key growth indicators:-----------------------')
-    print('-----------------------------------------------------------------')
+    print('-------------------------------------------------------------------------------------')
+    print('------------------------------Key growth indicators:---------------------------------')
+    print('-------------------------------------------------------------------------------------')
     ratios = calculate_ratios(data, ticker)
 
     print(ratios.transpose())
-    set_trace()
+    print('-------------------------------------------------------------------------------------')
+    print('Revenue Per Share (Diluted) Growth:')
+    print(calculate_cagr_of_time_series(ratios['RevenuePerShare(Diluted)']))
+    print('-------------------------------------------------------------------------------------')
+    print('Earning PerShare (Diluted) Growth:')
+    print(calculate_cagr_of_time_series(ratios['EarningPerShare(Diluted)']))
+    print('-------------------------------------------------------------------------------------')
+    print('Book Value Per Share Growth:')
+    print(calculate_cagr_of_time_series(ratios['BookValuePerShare']))
+    print('-------------------------------------------------------------------------------------')
+    print('Free Cash Flow Per Share (Diluted) Growth:')
+    print(calculate_cagr_of_time_series(ratios['FreeCashFlowPerShare(Diluted)']))
+    # set_trace()
 
 
 if __name__ == "__main__":
