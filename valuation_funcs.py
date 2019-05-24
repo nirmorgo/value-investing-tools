@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
 
+
 def calculate_cagr(start_value, end_value, years):
-    if start_value <= 0 or end_value <=0:
+    if start_value <= 0 or end_value <= 0:
         return None
     cagr = ((end_value / start_value) ** (1 / years) - 1)
     return int(np.round(cagr * 100))
+
 
 def calculate_cagr_of_time_series(input_series):
     if input_series.index[-1] == 'TTM':
@@ -25,14 +27,15 @@ def calculate_cagr_of_time_series(input_series):
             cagrs.append(None)
 
     cagrs.append(np.nan)
-    
+
     columns = [str(period) + ' yeras' for period in periods] + ['now']
-    out = pd.DataFrame(columns=columns, index=['value','CAGR'])
+    out = pd.DataFrame(columns=columns, index=['value', 'CAGR'])
     out.loc['value'] = values.values
     out.loc['CAGR'] = cagrs
     return out
 
-def growth_at_normalized_PE(eps_ttm, normalized_pe_estimation, GR_estimation):
+
+def calc_growth_at_normalized_PE(eps_ttm, normalized_pe_estimation, GR_estimation):
     '''
     a nice valuation technique where we predict a fair price for the stock by projecting the stimated growth 
     values, and then calculate it back (with a discount rate)
@@ -48,3 +51,32 @@ def growth_at_normalized_PE(eps_ttm, normalized_pe_estimation, GR_estimation):
     low_value = discounted_eps * normalized_pe_estimation
 
     return low_value, high_value
+
+
+def calc_owner_earnings(last_year_data):
+    '''
+    a valuation technique where we calculate the owner earnings from the buisness operation
+    The assumption is that if the market cap is higher than 10 years of earnings, than the 
+    stock might be overpriced.
+    the function gets the income statement data, and returns the owner earnings
+    '''
+    balance = {}
+    balance['income'] = last_year_data['NetIncomeLoss']
+    balance['tax'] = last_year_data['IncomeTaxExpenseBenefit']
+    balance['deprecation'] = last_year_data['DepreciationAndAmortization']
+    balance['recievables'] = last_year_data['IncreaseDecreaseInAccountsReceivable']
+    balance['payable'] = last_year_data['IncreaseDecreaseInAccountsPayable']
+    balance['capex'] = last_year_data['CapitalExpenditure']
+
+    for key in balance.keys():
+        if np.isnan(balance[key]):
+            balance[key] = 0
+            if key in ['income', 'capex']:
+                print('Not enough information for owner earning calculation')
+                return None
+
+    owner_earnings = balance['income'] + balance['tax'] + balance['deprecation'] - \
+        balance['recievables'] + balance['payable'] - balance['capex']
+    
+    return owner_earnings
+    
