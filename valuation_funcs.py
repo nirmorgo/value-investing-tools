@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 
 def calculate_cagr(start_value, end_value, years):
+    if start_value <= 0 or end_value <=0:
+        return None
     cagr = ((end_value / start_value) ** (1 / years) - 1)
     return int(np.round(cagr * 100))
 
@@ -29,3 +31,20 @@ def calculate_cagr_of_time_series(input_series):
     out.loc['value'] = values.values
     out.loc['CAGR'] = cagrs
     return out
+
+def growth_at_normalized_PE(eps_ttm, normalized_pe_estimation, GR_estimation):
+    '''
+    a nice valuation technique where we predict a fair price for the stock by projecting the stimated growth 
+    values, and then calculate it back (with a discount rate)
+    '''
+    # calculate 12% dicount rate for 6 years
+    future_eps = eps_ttm * np.power((1 + GR_estimation / 100.0), 6)
+    discounted_eps = future_eps / np.power(1.12, 6)
+    high_value = discounted_eps * normalized_pe_estimation
+
+    # calculate 15% dicount rate for 6 years
+    future_eps = eps_ttm * np.power((1 + GR_estimation / 100.0), 5)
+    discounted_eps = future_eps / np.power(1.15, 5)
+    low_value = discounted_eps * normalized_pe_estimation
+
+    return low_value, high_value
