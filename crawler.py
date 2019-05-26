@@ -72,12 +72,19 @@ class SecCrawler(object):
         # store the link in the list
         link_list = [link.string for link in soup.find_all('a')]
         regex = re.compile('.*[0-9].xml')
+        regex2 = re.compile('.*htm.xml')
         file_name, file_url = None, None
         for link in link_list:
             if link is not None and regex.match(link):
                 file_name = link
                 # replace last part of the link with the xml file name
                 file_url = '/'.join(base_url.split('/')[:-1] + [link])
+                break
+            if link is not None and regex2.match(link):
+                file_name = link
+                # replace last part of the link with the xml file name
+                file_url = '/'.join(base_url.split('/')[:-1] + [link])
+                break
         # set_trace()
         return file_url, file_name
 
