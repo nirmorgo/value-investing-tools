@@ -10,7 +10,6 @@ from bs4 import BeautifulSoup
 import datetime
 import re
 from tqdm import tqdm
-from config import simfin_api_key
 
 DEFAULT_DATA_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '.', 'SEC-Edgar-Data'))
@@ -24,17 +23,6 @@ class SecCrawler(object):
 
     def __repr__(self):
         return "SecCrawler(data_path={0})".format(self.data_path)
-
-    def _get_name_from_ticker(self, ticker):
-        request_url = f'https://simfin.com/api/v1/info/find-id/ticker/{ticker}?api-key={simfin_api_key}'
-        content = requests.get(request_url)
-        content = content.json()
-        try:
-            name = content[0]['name']
-            return name
-        except:
-            print('couldnt find company name....')
-        return ticker
 
     def _make_directory(self, ticker, priorto, filing_type):
         # Making the directory to save comapny filings
@@ -124,8 +112,7 @@ class SecCrawler(object):
             if date < 10**7 or date > 10**8:
                 raise TypeError('Date must be of the form YYYYMMDD')
 
-    def _fetch_report(self, ticker, cik, priorto, count, filing_type, doc_type='txt'):
-        company_name = self._get_name_from_ticker(ticker)
+    def _fetch_report(self, ticker, cik, company_name, priorto, count, filing_type, doc_type='txt'):
         priorto = self._sanitize_date(priorto)
         self._make_directory(ticker, priorto, filing_type)
 
@@ -148,23 +135,23 @@ class SecCrawler(object):
 
         print("Successfully downloaded {0} files ".format(len(docs)))
 
-    def filing_10Q(self, ticker, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(ticker, cik, priorto, count, '10-Q', doc_type)
+    def filing_10Q(self, ticker, cik, company_name, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, company_name, priorto, count, '10-Q', doc_type)
 
-    def filing_10K(self, ticker, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(ticker, cik, priorto, count, '10-K', doc_type)
+    def filing_10K(self, ticker, cik, company_name, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, company_name, priorto, count, '10-K', doc_type)
 
-    def filing_8K(self, ticker, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(ticker, cik, priorto, count, '8-K', doc_type)
+    def filing_8K(self, ticker, cik, company_name, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, company_name, priorto, count, '8-K', doc_type)
 
-    def filing_13F(self, ticker, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(ticker, cik, priorto, count, '13-F', doc_type)
+    def filing_13F(self, ticker, cik, company_name, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, company_name, priorto, count, '13-F', doc_type)
 
-    def filing_20F(self, ticker, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(ticker, cik, priorto, count, '20-F', doc_type)
+    def filing_20F(self, ticker, cik, company_name, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, company_name, priorto, count, '20-F', doc_type)
 
-    def filing_SD(self, ticker, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(ticker, cik, priorto, count, 'SD', doc_type)
+    def filing_SD(self, ticker, cik, company_name, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, company_name, priorto, count, 'SD', doc_type)
 
-    def filing_4(self, ticker, cik, priorto, count, doc_type='txt'):
-        self._fetch_report(ticker, cik, priorto, count, '4', doc_type)
+    def filing_4(self, ticker, cik, company_name, priorto, count, doc_type='txt'):
+        self._fetch_report(ticker, cik, company_name, priorto, count, '4', doc_type)
