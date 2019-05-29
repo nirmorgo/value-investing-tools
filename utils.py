@@ -6,8 +6,8 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-# add config.py file which contains https://www.worldtradingdata.com/ and https://simfin.com/data/access/api API keys
-from config import WTD_api_key, simfin_api_key
+# add config.py file which contains https://www.worldtradingdata.com/ API key
+from config import WTD_api_key
 from ipdb import set_trace
 
 
@@ -112,27 +112,3 @@ def estimate_stock_split_adjustments(stock_count):
 
     return adjusted_count
 
-
-def get_simfin_TTM_data(ticker):
-    '''
-    use simfin API to get TTM data (need to have api key set in config.py file) 
-    '''
-    try:
-        request_url = 'https://simfin.com/api/v1/info/find-id/ticker/%s?api-key=%s' % (
-            ticker, simfin_api_key)
-        content = requests.get(request_url)
-        content = content.json()
-        sim_id = content[0]['simId']
-        request_url = 'https://simfin.com/api/v1/companies/id/%s/ratios?api-key=%s' % (
-            sim_id, simfin_api_key)
-        content = requests.get(request_url)
-        content = content.json()
-        TTM_data = {}
-        for ratio in content:
-            if ratio['value'] is not None:
-                TTM_data[ratio['indicatorName']] = float(ratio['value'])
-    except:
-        print("can't get Simfin API TTM data...")
-        return None
-
-    return TTM_data

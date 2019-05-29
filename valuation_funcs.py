@@ -72,7 +72,7 @@ def calc_owner_earnings(last_year_data):
         if np.isnan(balance[key]):
             balance[key] = 0
             if key in ['income', 'capex']:
-                print('Not enough information for owner earning calculation')
+                print('Not enough information for owner earnings calculation')
                 return None
 
     owner_earnings = balance['income'] + balance['tax'] + balance['deprecation'] - \

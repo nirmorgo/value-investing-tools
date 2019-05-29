@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import find_and_save_10K_to_folder, get_simfin_TTM_data
+from utils import find_and_save_10K_to_folder, find_and_save_10Q_to_folder, find_and_save_20F_to_folder, get_simfin_TTM_data
 from utils import get_historical_stock_price, get_reports_list, estimate_stock_split_adjustments
 from valuation_funcs import calculate_cagr_of_time_series, calc_growth_at_normalized_PE, calc_owner_earnings
 from xbrl_parser import XBRL
@@ -15,22 +15,63 @@ parser.add_argument('--ticker', '-t', type=str,
                     help='The ticker of the stock you wish to analyze')
 parser.add_argument('--download', '-d', action='store_true',
                     help='A boolean switch')
+parser.add_argument('--foreign', '-f', action='store_true',
+                    help='A boolean switch')
 
 args = parser.parse_args()
 
 
-def load_all_historical_10K(ticker, download_latest=True):
+def load_all_historical_10K(ticker, download_latest=True, foreign=False):
     ticker = ticker.lower()
-    if download_latest:
-        find_and_save_10K_to_folder(ticker)
-    files = get_reports_list(ticker)
+    if foreign:
+        report_type = '20-F'
+        if download_latest:
+            find_and_save_20F_to_folder(ticker, number_of_documents=10)
+    else:
+        report_type = '10-K'
+        if download_latest:
+            find_and_save_10K_to_folder(ticker, number_of_documents=10)
+
+    files = get_reports_list(ticker, report_type=report_type)
     if len(files) <= 1:
-        print(f'could not find enough {ticker} data')
+        print(
+            'could not find enough %s data. download by adding the argument "-d"' % ticker)
         sys.exit()
     xbrl = XBRL()
     for file in files:
-        xbrl.load_xbrl_file(file)
+        xbrl.load_YTD_xbrl_file(file)
     return xbrl.get_data_df()
+
+
+def load_latest_quarters(ticker, download_latest=True, foreign=False):
+    ticker = ticker.lower()
+    if download_latest:
+        find_and_save_10Q_to_folder(ticker, number_of_documents=5)
+    files_10q = get_reports_list(ticker, report_type='10-Q')
+    if len(files_10q) <= 1:
+        print('could not find %s quarters reports - so no TTM data' % ticker)
+        return None
+    files_10k = get_reports_list(ticker, report_type='10-K')
+    xbrl = XBRL()
+    for file in files_10k:
+        xbrl.load_10Q_xbrl_file(file)
+    for file in files_10q:
+        xbrl.load_10Q_xbrl_file(file)
+    return xbrl.get_data_df()
+
+
+def get_TTM_data(ticker, download_latest=True, foreign=False):
+    data = load_latest_quarters(ticker, download_latest, foreign)
+    if data is None:
+        return None
+    data.index = pd.to_datetime(data.index)
+    data.sort_index(inplace=True)
+    data = data.iloc[-4:]
+    data.loc['TTM'] = data.sum(skipna=False)
+    data.loc['TTM']['NumberOfDilutedShares'] = data.iloc[-2]['NumberOfDilutedShares']
+    data.loc['TTM']['NumberOfShares'] = data.iloc[-2]['NumberOfShares']
+    data.loc['TTM']['StockholdersEquity'] = data.iloc[-2]['StockholdersEquity']
+    return data.loc['TTM']
 
 
 def calculate_ratios(data, ticker):
@@ -45,45 +86,21 @@ def calculate_ratios(data, ticker):
                                                data['CapitalExpenditure']).divide(data['NumberOfDilutedSharesAdjusted'])
     ratios['P/E'] = data['StockPrice'].divide(
         ratios['EarningPerShare(Diluted)'])
-
-    ratios.loc['TTM'] = None
-    TTM_data = get_simfin_TTM_data(ticker)
-    try:
-        ratios.loc['TTM']['RevenuePerShare(Diluted)'] = TTM_data['Revenues'] / \
-            TTM_data['Average Shares Outstanding, diluted']
-    except:
-        pass
-    try:
-        ratios.loc['TTM']['EarningPerShare(Diluted)'] = TTM_data['Earnings per Share, Diluted']
-    except:
-        pass
-    try:
-        ratios.loc['TTM']['BookValuePerShare'] = TTM_data['Book Value per Share']
-    except:
-        pass
-    try:
-        ratios.loc['TTM']['FreeCashFlowPerShare(Diluted)'] = TTM_data['Free Cash Flow'] / \
-            TTM_data['Average Shares Outstanding, diluted']
-    except:
-        pass
-    try:
-        ratios.loc['TTM']['P/E'] = TTM_data['Price to Earnings Ratio']
-    except:
-        pass
     return ratios
 
 
 def main():
     ticker = args.ticker
-    data = load_all_historical_10K(ticker, download_latest=args.download)
+    data = load_all_historical_10K(ticker, args.download, args.foreign)
     data = data.iloc[1:]
-
+    data.loc['TTM'] = get_TTM_data(ticker, args.download, args.foreign)
     data['NumberOfDilutedSharesAdjusted'] = estimate_stock_split_adjustments(
         data['NumberOfDilutedShares'])
     data['NumberOfSharesAdjusted'] = estimate_stock_split_adjustments(
         data['NumberOfShares'])
-
-    years = int(data.index[-1] - data.index[0] + 1)
+    data['NumberOfDilutedSharesAdjusted'].fillna(
+        data['NumberOfSharesAdjusted'], inplace=True)
+    years = int(data.index[-2] - data.index[0] + 1)
     daily_prices = get_historical_stock_price(ticker, years)
 
     monthly_prices = daily_prices.close.resample('M').last()
@@ -97,6 +114,7 @@ def main():
     yearly_prices.index = yearly_prices.index.year
 
     data['StockPrice'] = yearly_prices
+    data.loc['TTM']['StockPrice'] = daily_prices.iloc[-1].close
     print('-------------------------------------------------------------------------------------')
     print('--------------------------------Fundamental data:------------------------------------')
     print('-------------------------------------------------------------------------------------')
@@ -132,9 +150,11 @@ def main():
     free_cash_flow_growth = calculate_cagr_of_time_series(
         ratios['FreeCashFlowPerShare(Diluted)'])
     print(free_cash_flow_growth)
+    print()
+    print()
     print('-------------------------------------------------------------------------------------')
-    print()
-    print()
+    print('Latest Stock Price: %.2f' % daily_prices.iloc[-1].close)
+    print('-------------------------------------------------------------------------------------')
     print('Value estimation with "Growth At Normalized P/E" technique:')
     print('-------------------------------------------------------------------------------------')
 
@@ -172,11 +192,14 @@ def main():
     print()
     print('Value estimation with "Owner Earnings" technique:')
     print('-------------------------------------------------------------------------------------')
-    owner_earnings = calc_owner_earnings(data.iloc[-1])
-    market_cap = daily_prices.iloc[-1].close * data.iloc[-1]['NumberOfShares']
-    print('10 years of owner earnings: %d' % (10 * owner_earnings))
-    print('Market Cap: %d' % market_cap)
-    print("Owner earnings ratio (>1.0 is good): %.2f" % (10 * owner_earnings / market_cap))
+    owner_earnings = calc_owner_earnings(data.iloc[-2])
+    if owner_earnings is not None:
+        market_cap = daily_prices.iloc[-1].close * \
+            data.iloc[-1]['NumberOfShares']
+        print('10 years of owner earnings: %d' % (10 * owner_earnings))
+        print('Market Cap: %d' % market_cap)
+        print("Owner earnings ratio (>1.0 is good): %.2f" %
+              (10 * owner_earnings / market_cap))
     print('-------------------------------------------------------------------------------------')
     print()
     print()
