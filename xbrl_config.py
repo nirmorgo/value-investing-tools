@@ -18,11 +18,13 @@ US_GAPP_TAGS_LIST = ['EarningsPerShareDiluted',
                      'NumberOfDilutedShares',
                      'NumberOfShares']
 
-ALTERNATIVE_TAG_NAMES = {'Revenues': ['SalesRevenueNet', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'SalesRevenueGoodsNet'],
+ALTERNATIVE_TAG_NAMES = {'Revenues': ['SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerIncludingAssessedTax', 'RevenueFromContractWithCustomerExcludingAssessedTax'],
                          'CashFlowFromOperations': 'NetCashProvidedByUsedInOperatingActivities',
-                         'NetIncomeLoss': 'NetIncomeLossAvailableToCommonStockholdersBasic',
+                         'NetIncomeLoss': ['NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLoss'],
                          'CapitalExpenditure': ['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'],
                          'CostOfGoodsAndServicesSold': 'CostOfRevenue',
                          'DepreciationAndAmortization': 'DepreciationDepletionAndAmortization',
-                         'NumberOfDilutedShares': 'WeightedAverageNumberOfDilutedSharesOutstanding',
-                         'NumberOfShares': 'WeightedAverageNumberOfSharesOutstandingBasic'}
+                         'EarningsPerShareDiluted': 'EarningsPerShareBasicAndDiluted',
+                         'EarningsPerShareBasic': 'EarningsPerShareBasicAndDiluted',
+                         'NumberOfDilutedShares': ['WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfShareOutstandingBasicAndDiluted'],
+                         'NumberOfShares': ['WeightedAverageNumberOfSharesOutstandingBasic', 'WeightedAverageNumberOfShareOutstandingBasicAndDiluted']}

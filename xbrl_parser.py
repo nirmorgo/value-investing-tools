@@ -15,9 +15,12 @@ class XBRL:
         self.data = {}
         self.YTD_contexts = {}
         self.Q4_contexts = {}
-        self.Q3_contexts = {}
         self.latestQ_context = {}
 
+        # set some default contexts
+        for year in range(2010, datetime.now().year):
+            self.YTD_contexts['FD%dQ4YTD' % year] = year
+            self.Q4_contexts['FI%dQ4' % year] = year
         # default fields that are parsed from XBRL file
         self.us_gaap_tag_names_list = US_GAPP_TAGS_LIST
         self.alternative_tag_names = ALTERNATIVE_TAG_NAMES
@@ -62,7 +65,6 @@ class XBRL:
                     else:
                         if len(tag.attrs['id']) < len(YTD_contexts[year]):
                             YTD_contexts[year] = tag.attrs['id']
-
         # flip the keys and values for later use
         for year in YTD_contexts.keys():
             self.YTD_contexts[YTD_contexts[year]] = year

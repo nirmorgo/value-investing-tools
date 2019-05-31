@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import find_and_save_10K_to_folder, find_and_save_10Q_to_folder, find_and_save_20F_to_folder, get_simfin_TTM_data
+from utils import find_and_save_10K_to_folder, find_and_save_10Q_to_folder, find_and_save_20F_to_folder
 from utils import get_historical_stock_price, get_reports_list, estimate_stock_split_adjustments
 from valuation_funcs import calculate_cagr_of_time_series, calc_growth_at_normalized_PE, calc_owner_earnings
 from xbrl_parser import XBRL
@@ -195,7 +195,7 @@ def main():
     owner_earnings = calc_owner_earnings(data.iloc[-2])
     if owner_earnings is not None:
         market_cap = daily_prices.iloc[-1].close * \
-            data.iloc[-1]['NumberOfShares']
+            data.iloc[-2]['NumberOfShares']
         print('10 years of owner earnings: %d' % (10 * owner_earnings))
         print('Market Cap: %d' % market_cap)
         print("Owner earnings ratio (>1.0 is good): %.2f" %
