@@ -80,3 +80,47 @@ def calc_owner_earnings(last_year_data):
     
     return owner_earnings
     
+
+def DCF_FCF(latest_fcf, growth_rate=20):
+    '''
+    Discounted Cash Flow model based on Free Cash Flow (As described in https://www.gurufocus.com/)
+    The future cash flow is estimated based on a cash flow growth rate and a discount rate. 
+    All of the discounted future cash flow is added together to get the current intrinsic value of the company.
+    We use a two-stage model when calculating a stock's intrinsic value - a growth stage with high growth and a terminal stage with slower growth
+    Here I do the estimation twice with different growth rates to get a low / high bounds.
+    '''
+    if latest_fcf <= 0:
+        return None, None
+    
+    growth_rate /= 100  # change percents to fractions
+    d = 0.12  # Discount rate
+    terminal_growth_rate = 0.04
+    y1 = 10  # years at high growth rate
+    y2 = 10  # years  at the terminal stage
+    accumulated_ratios = 0
+    for y in range(y1+1)[1:]:
+        g_2_d_ratio = np.power((1 + growth_rate) / (1 + d), y)
+        accumulated_ratios += g_2_d_ratio
+    
+    for y in range(y2+1)[1:]:
+        terminal_ratio = np.power((1 + terminal_growth_rate) / (1 + d), y)
+        accumulated_ratios += g_2_d_ratio * terminal_ratio
+
+    high_DCF = latest_fcf * accumulated_ratios
+
+    # do a lower estimation with slower growth rate
+    low_growth_rate = max(0.05, growth_rate / 2)
+    accumulated_ratios = 0
+    for y in range(y1+1)[1:]:
+        g_2_d_ratio = np.power((1 + low_growth_rate) / (1 + d), y)
+        accumulated_ratios += g_2_d_ratio
+    
+    for y in range(y2+1)[1:]:
+        terminal_ratio = np.power((1 + terminal_growth_rate) / (1 + d), y)
+        accumulated_ratios += g_2_d_ratio * terminal_ratio
+
+    low_DCF = latest_fcf * accumulated_ratios
+
+    return low_DCF, high_DCF
+
+

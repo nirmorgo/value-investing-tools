@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from utils import find_and_save_10K_to_folder, find_and_save_10Q_to_folder, find_and_save_20F_to_folder
 from utils import get_historical_stock_price, get_reports_list, estimate_stock_split_adjustments
-from valuation_funcs import calculate_cagr_of_time_series, calc_growth_at_normalized_PE, calc_owner_earnings
+from valuation_funcs import calculate_cagr_of_time_series, calc_growth_at_normalized_PE, calc_owner_earnings, DCF_FCF
 from xbrl_parser import XBRL
 from ipdb import set_trace
 
@@ -167,8 +167,8 @@ def main():
             valid_cagrs.append(cagr_value)
         except:
             continue
-    # capping the default growth rate estimation in 5-20% range
-    GR_default = min(max(np.mean(valid_cagrs), 5), 20)
+    # capping the default growth rate estimation in 5-15% range
+    GR_default = min(max(np.mean(valid_cagrs), 5), 15)
     GR_estimation = input(
         'Estimate growth rate in %% (if nothing entered, %d%% is taken): ' % GR_default)
     GR_estimation = int(GR_estimation or GR_default)
@@ -200,6 +200,32 @@ def main():
         print('Market Cap: %d' % market_cap)
         print("Owner earnings ratio (>1.0 is good): %.2f" %
               (10 * owner_earnings / market_cap))
+    print('-------------------------------------------------------------------------------------')
+    print()
+    print()
+    print('Value estimation with "Discounted Cash Flow (FCF based" technique:')
+    print('-------------------------------------------------------------------------------------')
+    FCF_cagrs = free_cash_flow_growth.loc['CAGR'].values
+    valid_cagrs = []
+    for cagr in FCF_cagrs:
+        try:
+            cagr_value = int(cagr[:-1])
+            valid_cagrs.append(cagr_value)
+        except:
+            continue
+    # capping the default growth rate estimation in 5-20% range
+    if len(valid_cagrs) > 0:
+        FCF_GR = min(max(np.mean(valid_cagrs), 5), 20)
+    else:
+        FCF_GR = GR_default
+    try:
+        latest_FCF = ratios['FreeCashFlowPerShare(Diluted)'].dropna().iloc[-1]
+        dcf_low, dcf_high = DCF_FCF(latest_FCF, growth_rate=FCF_GR)
+        print("Fair value is estimated in the range of $%.2f - $%.2f" %
+            (dcf_low, dcf_high))
+    except:
+        print("not enough data... (or negative cash flow)")
+
     print('-------------------------------------------------------------------------------------')
     print()
     print()
