@@ -197,8 +197,8 @@ class XBRL:
                 alt_tag_names = [alt_tag_names]
             for alt_tag_name in alt_tag_names:
                 alt_tag_name = "us-gaap:" + alt_tag_name.lower()
-                tags = self._find_us_gaap_tags(alt_tag_name)
-                for tag in tags:
+                alt_tags = self._find_us_gaap_tags(alt_tag_name)
+                for tag in alt_tags:
                     context = tag.attrs['contextref']
                     if context in self.YTD_contexts.keys():
                         year = self.YTD_contexts[context]
