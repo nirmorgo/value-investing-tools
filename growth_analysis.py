@@ -203,7 +203,7 @@ def main():
     print('-------------------------------------------------------------------------------------')
     print()
     print()
-    print('Value estimation with "Discounted Cash Flow (FCF based" technique:')
+    print('Value estimation with "Discounted Cash Flow (FCF based)" technique:')
     print('-------------------------------------------------------------------------------------')
     FCF_cagrs = free_cash_flow_growth.loc['CAGR'].values
     valid_cagrs = []

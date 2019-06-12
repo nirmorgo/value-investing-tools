@@ -15,10 +15,11 @@ class XBRL:
         self.data = {}
         self.YTD_contexts = {}
         self.Q4_contexts = {}
+        self.Q4_dates = set()
         self.latestQ_context = {}
 
         # set some default contexts
-        for year in range(2010, datetime.now().year):
+        for year in range(2010, datetime.now().year+1):
             self.YTD_contexts['FD%dQ4YTD' % year] = year
             self.Q4_contexts['FI%dQ4' % year] = year
         # default fields that are parsed from XBRL file
@@ -65,6 +66,8 @@ class XBRL:
                     else:
                         if len(tag.attrs['id']) < len(YTD_contexts[year]):
                             YTD_contexts[year] = tag.attrs['id']
+                    # the end date of the year might assist in finding the last quarter contexts later on
+                    self.Q4_dates.add(enddate)
         # flip the keys and values for later use
         for year in YTD_contexts.keys():
             self.YTD_contexts[YTD_contexts[year]] = year
@@ -96,6 +99,9 @@ class XBRL:
                     year -= 1
                 # year = str(year)
                 if year not in Q4_dates_per_year.keys():
+                    Q4_dates_per_year[year] = date
+                    Q4_contexts[year] = tag.attrs['id']
+                elif date in self.Q4_dates and len(tag.attrs['id']) <= len(Q4_contexts[year]):
                     Q4_dates_per_year[year] = date
                     Q4_contexts[year] = tag.attrs['id']
                 elif date >= Q4_dates_per_year[year] and len(tag.attrs['id']) < len(Q4_contexts[year]):
