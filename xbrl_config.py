@@ -28,4 +28,4 @@ ALTERNATIVE_TAG_NAMES = {'Revenues': ['SalesRevenueNet', 'SalesRevenueGoodsNet',
                          'EarningsPerShareDiluted': 'EarningsPerShareBasicAndDiluted',
                          'EarningsPerShareBasic': 'EarningsPerShareBasicAndDiluted',
                          'NumberOfDilutedShares': ['WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfShareOutstandingBasicAndDiluted'],
-                         'NumberOfShares': ['WeightedAverageNumberOfSharesOutstandingBasic', 'WeightedAverageNumberOfShareOutstandingBasicAndDiluted']}
+                         'NumberOfShares': ['WeightedAverageNumberOfSharesOutstandingBasic', 'WeightedAverageNumberOfShareOutstandingBasicAndDiluted', 'CommonStocksIncludingAdditionalPaidInCapital']}

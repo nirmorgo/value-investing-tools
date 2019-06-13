@@ -167,39 +167,45 @@ def main():
             valid_cagrs.append(cagr_value)
         except:
             continue
-    # capping the default growth rate estimation in 5-15% range
-    GR_default = min(max(np.mean(valid_cagrs), 5), 15)
-    GR_estimation = input(
-        'Estimate growth rate in %% (if nothing entered, %d%% is taken): ' % GR_default)
-    GR_estimation = int(GR_estimation or GR_default)
-    pes = ratios['P/E'].values
-    pes = pes[~np.isnan(pes)]
-    default_pe_estimation = max(np.median(pes), 5) * 1.1
-    normalized_pe_estimation = input(
-        "Estimate normalized P/E estimation (if nothing entered, %.2f is taken):" % default_pe_estimation)
-    normalized_pe_estimation = float(
-        normalized_pe_estimation or default_pe_estimation)
-    eps_ttm = ratios.loc['TTM']['EarningPerShare(Diluted)']
-    if np.isnan(eps_ttm):
-        eps_ttm = ratios.iloc[-2]['EarningPerShare(Diluted)']
-    print("Growth rate estimation: %d%%, future P/E estimation: %.2f" %
-          (GR_estimation, normalized_pe_estimation))
-    print("Fair value is estimated in the range of $%.2f - $%.2f" %
-          (calc_growth_at_normalized_PE(eps_ttm, normalized_pe_estimation, GR_estimation)))
+    try:
+        # capping the default growth rate estimation in 5-15% range
+        GR_default = min(max(np.mean(valid_cagrs), 5), 15)
+        GR_estimation = input(
+            'Estimate growth rate in %% (if nothing entered, %d%% is taken): ' % GR_default)
+        GR_estimation = int(GR_estimation or GR_default)
+        pes = ratios['P/E'].values
+        pes = pes[~np.isnan(pes)]
+        default_pe_estimation = max(np.median(pes), 5) * 1.1
+        normalized_pe_estimation = input(
+            "Estimate normalized P/E estimation (if nothing entered, %.2f is taken):" % default_pe_estimation)
+        normalized_pe_estimation = float(
+            normalized_pe_estimation or default_pe_estimation)
+        eps_ttm = ratios.loc['TTM']['EarningPerShare(Diluted)']
+        if np.isnan(eps_ttm):
+            eps_ttm = ratios.iloc[-2]['EarningPerShare(Diluted)']
+        print("Growth rate estimation: %d%%, future P/E estimation: %.2f" %
+            (GR_estimation, normalized_pe_estimation))
+        print("Fair value is estimated in the range of $%.2f - $%.2f" %
+            (calc_growth_at_normalized_PE(eps_ttm, normalized_pe_estimation, GR_estimation)))
+    except:
+        print('not enough data...')
 
     print('-------------------------------------------------------------------------------------')
     print()
     print()
     print('Value estimation with "Owner Earnings" technique:')
     print('-------------------------------------------------------------------------------------')
-    owner_earnings = calc_owner_earnings(data.iloc[-2])
-    if owner_earnings is not None:
-        market_cap = daily_prices.iloc[-1].close * \
-            data.iloc[-2]['NumberOfShares']
-        print('10 years of owner earnings: %d' % (10 * owner_earnings))
-        print('Market Cap: %d' % market_cap)
-        print("Owner earnings ratio (>1.0 is good): %.2f" %
-              (10 * owner_earnings / market_cap))
+    try:
+        owner_earnings = calc_owner_earnings(data.iloc[-2])
+        if owner_earnings is not None:
+            market_cap = daily_prices.iloc[-1].close * \
+                data.iloc[-2]['NumberOfShares']
+            print('10 years of owner earnings: %d' % (10 * owner_earnings))
+            print('Market Cap: %d' % market_cap)
+            print("Owner earnings ratio (>1.0 is good): %.2f" %
+                (10 * owner_earnings / market_cap))
+    except:
+        print('not enough data...')
     print('-------------------------------------------------------------------------------------')
     print()
     print()
@@ -229,7 +235,6 @@ def main():
     print('-------------------------------------------------------------------------------------')
     print()
     print()
-    # set_trace()
 
 
 if __name__ == "__main__":

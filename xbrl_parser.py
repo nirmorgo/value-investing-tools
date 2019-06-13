@@ -218,6 +218,21 @@ class XBRL:
                     year = self.Q4_contexts[context]
                     self.data[tag_name][year] = float(tag.text)
                     found = True
+        
+        # TO DO - this copied block of code is not very elegant, need to think of a different approach
+        if not found and allow_Q4_data and tag_name in self.alternative_tag_names.keys():
+            alt_tag_names = self.alternative_tag_names[tag_name]
+            if type(alt_tag_names) is not list:
+                alt_tag_names = [alt_tag_names]
+            for alt_tag_name in alt_tag_names:
+                alt_tag_name = "us-gaap:" + alt_tag_name.lower()
+                alt_tags = self._find_us_gaap_tags(alt_tag_name)
+                for tag in alt_tags:
+                    context = tag.attrs['contextref']
+                    if context in self.Q4_contexts.keys():
+                        year = self.Q4_contexts[context]
+                        self.data[tag_name][year] = float(tag.text)
+                        found = True
 
     def _find_latest_Q_data(self, tag_name):
         if tag_name not in self.data.keys():
