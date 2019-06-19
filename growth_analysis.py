@@ -2,7 +2,6 @@ import sys
 import requests
 import argparse
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 from utils import find_and_save_10K_to_folder, find_and_save_10Q_to_folder, find_and_save_20F_to_folder
 from utils import get_historical_stock_price, get_reports_list, estimate_stock_split_adjustments
