@@ -16,6 +16,8 @@ parser.add_argument('--download', '-d', action='store_true',
                     help='A boolean switch')
 parser.add_argument('--foreign', '-f', action='store_true',
                     help='A boolean switch')
+parser.add_argument('--no_dei_data', '-no_dei', action='store_true',
+                    help='A boolean switch')
 
 args = parser.parse_args()
 
@@ -36,7 +38,8 @@ def load_all_historical_10K(ticker, download_latest=True, foreign=False):
         print(
             'could not find enough %s data. download by adding the argument "-d"' % ticker)
         sys.exit()
-    xbrl = XBRL()
+    use_dei = not(args.no_dei_data)
+    xbrl = XBRL(use_dei=use_dei)
     for file in files:
         xbrl.load_YTD_xbrl_file(file)
     return xbrl.get_data_df()
