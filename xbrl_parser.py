@@ -218,7 +218,7 @@ class XBRL:
                     year = self.Q4_contexts[context]
                     self.data[tag_name][year] = float(tag.text)
                     found = True
-        
+
         # TO DO - this copied block of code is not very elegant, need to think of a different approach
         if not found and allow_Q4_data and tag_name in self.alternative_tag_names.keys():
             alt_tag_names = self.alternative_tag_names[tag_name]
