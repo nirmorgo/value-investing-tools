@@ -104,5 +104,7 @@ venv.bak/
 .mypy_cache/
 
 # saved data
-*.xml
-*.txt
+SEC-Edgar-Data/*
+
+# IDE 
+.vscode
