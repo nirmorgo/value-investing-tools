@@ -10,13 +10,14 @@ from xbrl_config import US_GAPP_TAGS_LIST, ALTERNATIVE_TAG_NAMES
 
 class XBRL:
 
-    def __init__(self, xbrl_path=None, extra_tags=[]):
+    def __init__(self, use_dei=False, extra_tags=[]):
 
         self.data = {}
         self.YTD_contexts = {}
         self.Q4_contexts = {}
         self.Q4_dates = set()
         self.latestQ_context = {}
+        self.use_dei = use_dei
 
         # set some default contexts
         for year in range(2010, datetime.now().year+1):
@@ -56,7 +57,14 @@ class XBRL:
                 enddate = datetime.strptime(enddate, "%Y%m%d")
                 tdelta = enddate - startdate
                 if tdelta.days > 360 and "us-gaap" not in tag.attrs['id']:
-                    if enddate.month >= 3:
+                    if self.use_dei and self.currentFY is not None:
+                        if enddate.month == self.document_end_date.month and enddate.day == self.document_end_date.day:
+                            delta_years = self.document_end_date.year - enddate.year
+                            year = self.currentFY - delta_years
+                        else:
+                            continue
+                    elif enddate.month >= 3:
+                        # If we don't use DEI data we take a rule of thumb of common year end months
                         year = enddate.year
                     else:
                         year = startdate.year
@@ -260,10 +268,42 @@ class XBRL:
                         self.data[tag_name][date] = float(tag.text)
                         found = True
 
+    def find_dei_info(self):
+        # tags = self.raw_data.find_all('dei:CurrentFiscalYearEndDate'.lower())
+        # self.year_end_date = tags[0].text
+        # self.year_end_date = datetime.strptime(self.year_end_date, '--%m-%d')
+        self.document_end_date = None
+        self.currentFY = None
+        self.latest_stock_count = None
+        try:
+            tags = self.raw_data.find_all('dei:DocumentPeriodEndDate'.lower())
+            self.document_end_date = tags[0].text
+            self.document_end_date = datetime.strptime(
+                self.document_end_date, '%Y-%m-%d')
+
+            tags = self.raw_data.find_all(
+                'dei:DocumentFiscalYearFocus'.lower())
+            self.currentFY = int(tags[0].text)
+            context_ref = tags[0].attrs['contextref']
+            self.YTD_contexts[context_ref] = self.currentFY
+        except:
+            pass
+
+        try:
+            tags = self.raw_data.find_all(
+                'dei:EntityCommonStockSharesOutstanding'.lower())
+            self.latest_stock_count = 0
+            for tag in tags:
+                self.latest_stock_count += int(tag.text)
+        except:
+            pass
+
     def _parse_YTD_xbrl(self):
         '''
         parse the xml and find data of all the predefined field in YTD contexts
         '''
+        if self.use_dei:
+            self.find_dei_info()
         self._find_YTD_contexts()
         self._find_endyearQ_contexts()
         for tag_name in self.us_gaap_tag_names_list:
@@ -290,6 +330,8 @@ class XBRL:
             tag.name = tag.name.lower()
 
         self._parse_YTD_xbrl()
+        if self.use_dei and self.currentFY not in self.data['NumberOfShares'].keys() and self.currentFY is not None:
+            self.data['NumberOfShares'][self.currentFY] = self.latest_stock_count
         self.data_df = pd.DataFrame(self.data)
 
     def load_10Q_xbrl_file(self, xbrl_path):
