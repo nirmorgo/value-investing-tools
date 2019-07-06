@@ -2,6 +2,27 @@ import numpy as np
 import pandas as pd
 
 
+def calculate_ROIC(data):
+    """gets a data frame with the following fields: OperatingIncome, TaxRate, LongTermDebt, CurrentDebt, StockholderEquity and Cash
+        and calculate the ROIC of the company per year
+    
+    Arguments:
+        data {pd.Dataframe} -- Dataframe with all needed columns
+    """
+    nopat = data['OperatingIncomeLoss'] * (1 - data['TaxRate'])
+    long_term_debt = data['LongTermDebt'].fillna(0)
+    current_debt = data['CurrentDebt'].fillna(0)
+    invested_capital = long_term_debt + current_debt + data['StockholdersEquity'] - data['Cash']
+    average_invested_capital = [None]
+    for i in range(len(invested_capital))[1:]:
+        average = (invested_capital.iloc[i] + invested_capital.iloc[i - 1]) / 2
+        average_invested_capital.append(average)
+    
+    roic_values = nopat.divide(average_invested_capital)
+    roic = pd.Series([f"{round(100 * val, 2)}%" for val in roic_values], index=roic_values.index)
+    return roic
+
+
 def calculate_cagr(start_value, end_value, years):
     if start_value <= 0 or end_value <= 0:
         return None

@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from utils import find_and_save_10K_to_folder, find_and_save_10Q_to_folder, find_and_save_20F_to_folder
 from utils import get_historical_stock_price, get_reports_list, estimate_stock_split_adjustments
-from valuation_funcs import calculate_cagr_of_time_series, calc_growth_at_normalized_PE, calc_owner_earnings, DCF_FCF
+from valuation_funcs import calculate_cagr_of_time_series, calc_growth_at_normalized_PE, calc_owner_earnings, DCF_FCF, calculate_ROIC
 from xbrl_parser import XBRL
 from ipdb import set_trace
 
@@ -76,8 +76,9 @@ def get_TTM_data(ticker, download_latest=True, foreign=False):
     return data.loc['TTM']
 
 
-def calculate_ratios(data, ticker):
+def calculate_ratios(data):
     ratios = pd.DataFrame()
+    ratios['ROIC'] = calculate_ROIC(data)
     ratios['RevenuePerShare(Diluted)'] = data['Revenues'].divide(
         data['NumberOfDilutedSharesAdjusted'])
     ratios['EarningPerShare(Diluted)'] = data['NetIncomeLoss'].divide(
@@ -125,7 +126,7 @@ def main():
     print('-------------------------------------------------------------------------------------')
     print('------------------------------Key growth indicators:---------------------------------')
     print('-------------------------------------------------------------------------------------')
-    ratios = calculate_ratios(data, ticker)
+    ratios = calculate_ratios(data)
 
     print(ratios.transpose())
     print()
