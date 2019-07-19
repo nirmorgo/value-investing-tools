@@ -76,20 +76,21 @@ def get_TTM_data(ticker, download_latest=True, foreign=False):
     return data.loc['TTM']
 
 
-def calculate_ratios(data):
-    ratios = pd.DataFrame()
-    ratios['ROIC'] = calculate_ROIC(data)
-    ratios['RevenuePerShare(Diluted)'] = data['Revenues'].divide(
-        data['NumberOfDilutedSharesAdjusted'])
-    ratios['EarningPerShare(Diluted)'] = data['NetIncomeLoss'].divide(
-        data['NumberOfDilutedSharesAdjusted'])
-    ratios['BookValuePerShare'] = data['StockholdersEquity'].divide(
+def calculate_key_values(data):
+    key_values = pd.DataFrame()
+    key_values['ROIC'] = calculate_ROIC(data)
+    key_values['BookValuePerShare'] = data['StockholdersEquity'].divide(
         data['NumberOfSharesAdjusted'])
-    ratios['FreeCashFlowPerShare(Diluted)'] = (data['CashFlowFromOperations'] -
+    key_values['EarningPerShare(Diluted)'] = data['NetIncomeLoss'].divide(
+        data['NumberOfDilutedSharesAdjusted'])
+    key_values['OI (or EBIT)'] = data['OperatingIncomeLoss']
+    key_values['RevenuePerShare(Diluted)'] = data['Revenues'].divide(
+        data['NumberOfDilutedSharesAdjusted'])
+    key_values['FreeCashFlowPerShare(Diluted)'] = (data['CashFlowFromOperations'] -
                                                data['CapitalExpenditure']).divide(data['NumberOfDilutedSharesAdjusted'])
-    ratios['P/E'] = data['StockPrice'].divide(
-        ratios['EarningPerShare(Diluted)'])
-    return ratios
+    key_values['P/E'] = data['StockPrice'].divide(
+        key_values['EarningPerShare(Diluted)'])
+    return key_values
 
 
 def main():
@@ -126,32 +127,38 @@ def main():
     print('-------------------------------------------------------------------------------------')
     print('------------------------------Key growth indicators:---------------------------------')
     print('-------------------------------------------------------------------------------------')
-    ratios = calculate_ratios(data)
+    key_values = calculate_key_values(data)
 
-    print(ratios.transpose())
-    print()
-    print('-------------------------------------------------------------------------------------')
-    print('Revenue Per Share (Diluted) Growth:')
-    revenue_per_share_growth = calculate_cagr_of_time_series(
-        ratios['RevenuePerShare(Diluted)'])
-    print(revenue_per_share_growth)
-    print()
-    print('-------------------------------------------------------------------------------------')
-    print('Earning Per Share (Diluted) Growth:')
-    eps_growth = calculate_cagr_of_time_series(
-        ratios['EarningPerShare(Diluted)'])
-    print(eps_growth)
+    print(key_values.transpose())
     print()
     print('-------------------------------------------------------------------------------------')
     print('Book Value Per Share Growth:')
     book_value_per_share_growth = calculate_cagr_of_time_series(
-        ratios['BookValuePerShare'])
+        key_values['BookValuePerShare'])
     print(book_value_per_share_growth)
+    print()
+    print('-------------------------------------------------------------------------------------')
+    print('Earning Per Share (Diluted) Growth:')
+    eps_growth = calculate_cagr_of_time_series(
+        key_values['EarningPerShare(Diluted)'])
+    print(eps_growth)
+    print()
+    print('-------------------------------------------------------------------------------------')
+    print('OI (or EBIT):')
+    oi_growth = calculate_cagr_of_time_series(
+        key_values['OI (or EBIT)'])
+    print(oi_growth)
+    print()
+    print('-------------------------------------------------------------------------------------')
+    print('Revenue Per Share (Diluted) Growth:')
+    revenue_per_share_growth = calculate_cagr_of_time_series(
+        key_values['RevenuePerShare(Diluted)'])
+    print(revenue_per_share_growth)
     print()
     print('-------------------------------------------------------------------------------------')
     print('Free Cash Flow Per Share (Diluted) Growth:')
     free_cash_flow_growth = calculate_cagr_of_time_series(
-        ratios['FreeCashFlowPerShare(Diluted)'])
+        key_values['FreeCashFlowPerShare(Diluted)'])
     print(free_cash_flow_growth)
     print()
     print()
@@ -176,16 +183,16 @@ def main():
         GR_estimation = input(
             'Estimate growth rate in %% (if nothing entered, %d%% is taken): ' % GR_default)
         GR_estimation = int(GR_estimation or GR_default)
-        pes = ratios['P/E'].values
+        pes = key_values['P/E'].values
         pes = pes[~np.isnan(pes)]
         default_pe_estimation = max(np.median(pes), 5) * 1.1
         normalized_pe_estimation = input(
             "Estimate normalized P/E estimation (if nothing entered, %.2f is taken):" % default_pe_estimation)
         normalized_pe_estimation = float(
             normalized_pe_estimation or default_pe_estimation)
-        eps_ttm = ratios.loc['TTM']['EarningPerShare(Diluted)']
+        eps_ttm = key_values.loc['TTM']['EarningPerShare(Diluted)']
         if np.isnan(eps_ttm):
-            eps_ttm = ratios.iloc[-2]['EarningPerShare(Diluted)']
+            eps_ttm = key_values.iloc[-2]['EarningPerShare(Diluted)']
         print("Growth rate estimation: %d%%, future P/E estimation: %.2f" %
             (GR_estimation, normalized_pe_estimation))
         print("Fair value is estimated in the range of $%.2f - $%.2f" %
@@ -228,7 +235,7 @@ def main():
     else:
         FCF_GR = GR_default
     try:
-        latest_FCF = ratios['FreeCashFlowPerShare(Diluted)'].dropna().iloc[-1]
+        latest_FCF = key_values['FreeCashFlowPerShare(Diluted)'].dropna().iloc[-1]
         dcf_low, dcf_high = DCF_FCF(latest_FCF, growth_rate=FCF_GR)
         print("Fair value is estimated in the range of $%.2f - $%.2f" %
             (dcf_low, dcf_high))

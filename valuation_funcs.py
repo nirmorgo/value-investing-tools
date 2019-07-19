@@ -49,7 +49,7 @@ def calculate_cagr_of_time_series(input_series):
 
     cagrs.append(np.nan)
 
-    columns = [str(period) + ' yeras' for period in periods] + ['now']
+    columns = [str(period) + ' years' for period in periods] + ['now']
     out = pd.DataFrame(columns=columns, index=['value', 'CAGR'])
     out.loc['value'] = values.values
     out.loc['CAGR'] = cagrs
