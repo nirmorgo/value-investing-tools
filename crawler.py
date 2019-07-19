@@ -24,10 +24,10 @@ class SecCrawler(object):
     def __repr__(self):
         return "SecCrawler(data_path={0})".format(self.data_path)
 
-    def _make_directory(self, ticker, priorto, filing_type):
+    def _make_directory(self, ticker, priorto, filing_type, doc_format):
         # Making the directory to save comapny filings
         self.full_path = os.path.join(
-            self.data_path, ticker, filing_type)
+            self.data_path, ticker, filing_type, doc_format)
 
         if not os.path.exists(self.full_path):
             try:
@@ -114,7 +114,7 @@ class SecCrawler(object):
 
     def _fetch_report(self, ticker, cik, company_name, priorto, count, filing_type, doc_type='txt'):
         priorto = self._sanitize_date(priorto)
-        self._make_directory(ticker, priorto, filing_type)
+        self._make_directory(ticker, priorto, filing_type, doc_type)
 
         # generate the url to crawl
         base_url = "http://www.sec.gov/cgi-bin/browse-edgar"
