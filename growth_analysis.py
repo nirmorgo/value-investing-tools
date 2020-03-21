@@ -104,6 +104,7 @@ def main():
         data['NumberOfShares'])
     data['NumberOfDilutedSharesAdjusted'].fillna(
         data['NumberOfSharesAdjusted'], inplace=True)
+    data = data.iloc[-10:] # use only data from last decade
     years = int(data.index[-2] - data.index[0] + 1)
     daily_prices = get_historical_stock_price(ticker, years)
 
@@ -210,7 +211,7 @@ def main():
         if owner_earnings is not None:
             market_cap = daily_prices.iloc[-1].close * \
                 data.iloc[-2]['NumberOfShares']
-            print('10 years of owner earnings: %d' % (10 * owner_earnings))
+            print('Yearly owner earnings (X10): %d' % (10 * owner_earnings))
             print('Market Cap: %d' % market_cap)
             print("Owner earnings ratio (>1.0 is good): %.2f" %
                 (10 * owner_earnings / market_cap))

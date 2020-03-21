@@ -70,7 +70,7 @@ def get_reports_list(ticker, report_type='10-K', file_type='xbrl', data_folder='
         sys.exit()
     if file_type == 'xbrl':
         files = [os.path.join(path, f) for f in os.listdir(
-            path) if re.match(r'.*[0-9]+.xml', f)]
+            path) if re.match(r'.*[0-9]+.xml', f) or re.match(r'.*htm.xml', f)]
     elif file_type == 'txt':
         files = [os.path.join(path, f) for f in os.listdir(
             path) if re.match(r'.*[0-9]+.txt', f)]
