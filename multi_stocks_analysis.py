@@ -76,8 +76,8 @@ def main():
             except:
                 continue
         try:
-            # capping the default growth rate estimation in 5-15% range
-            GR_default = min(max(np.mean(valid_cagrs), 5), 15)
+            # capping the default growth rate estimation in 5-10% range
+            GR_default = min(max(np.mean(valid_cagrs), 5), 10)
             GR_estimation = int(GR_default)
             out["growth estimation"] = "%d%%" % int(GR_estimation)
             pes = key_values['P/E'].values
@@ -98,11 +98,12 @@ def main():
         # ---------------Value estimation with "Owner Earnings" technique------------------------
         try:
             owner_earnings = calc_owner_earnings(data.iloc[-2])
-            if owner_earnings >= 0.75:
-                buy_indicators += 1
             market_cap = daily_prices.iloc[-1].close * \
                 data.iloc[-2]['NumberOfShares']
-            out["Owner earnings ratio (>1.0 is good)"] = 10 * owner_earnings / market_cap
+            owner_earnings_ratio = np.round(10 * owner_earnings / market_cap, 2)
+            if owner_earnings_ratio >= 0.75:
+                buy_indicators += 1
+            out["Owner earnings ratio (>1.0 is good)"] = owner_earnings_ratio
         except:
             out["Owner earnings ratio (>1.0 is good)"] = "NaN"
 
