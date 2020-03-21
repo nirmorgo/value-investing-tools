@@ -28,7 +28,7 @@ def main():
             data.loc['TTM'] = get_TTM_data(ticker.lower())
         except Exception:
             print("couldn't find proper data for %s... skipping it!" % ticker)
-            output.append({"ticker": ticker})
+            output = output.append({"ticker": ticker}, ignore_index=True)
             continue
         data['NumberOfDilutedSharesAdjusted'] = estimate_stock_split_adjustments(
             data['NumberOfDilutedShares'])

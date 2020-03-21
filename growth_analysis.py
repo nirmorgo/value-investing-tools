@@ -34,10 +34,6 @@ def load_all_historical_10K(ticker, download_latest=True, foreign=False):
             find_and_save_10K_to_folder(ticker, number_of_documents=10)
 
     files = get_reports_list(ticker, report_type=report_type)
-    if len(files) <= 1:
-        print(
-            'could not find enough %s data. download by adding the argument "-d"' % ticker)
-        sys.exit()
     use_dei = not(args.no_dei_data)
     xbrl = XBRL(use_dei=use_dei)
     for file in files:
@@ -95,7 +91,12 @@ def calculate_key_values(data):
 
 def main():
     ticker = args.ticker
-    data = load_all_historical_10K(ticker, args.download, args.foreign)
+    try:
+        data = load_all_historical_10K(ticker, args.download, args.foreign)
+    except:
+        print('could not find %s data. download by adding the argument "-d"' % ticker)
+        sys.exit()
+
     data = data.iloc[1:]
     data.loc['TTM'] = get_TTM_data(ticker, args.download, args.foreign)
     data['NumberOfDilutedSharesAdjusted'] = estimate_stock_split_adjustments(
