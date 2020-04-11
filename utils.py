@@ -114,8 +114,6 @@ def get_historical_stock_price(ticker, years=10, api='simfin'):
         df.index = pd.to_datetime(df.index)
         df = df.apply(pd.to_numeric, errors='coerce')
         df = df.reindex(index=df.index[::-1])
-        set_trace()
-
     return df
 
 
