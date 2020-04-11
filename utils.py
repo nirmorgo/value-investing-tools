@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 # add config.py file which contains https://www.worldtradingdata.com/ API key
-from config import WTD_api_key
+from config import WTD_api_key, simfin_api_key
 from ipdb import set_trace
 
 
@@ -16,7 +16,8 @@ def find_and_save_10K_to_folder(ticker, from_date=None, number_of_documents=40, 
         from_date = datetime.today().strftime('%Y%m%d')
     crawler = SecCrawler()
     cik, company_name = get_cik_and_name_from_ticker(ticker)
-    crawler.filing_10K(ticker, cik, company_name, from_date, number_of_documents, doc_type)
+    crawler.filing_10K(ticker, cik, company_name, from_date,
+                       number_of_documents, doc_type)
 
 
 def find_and_save_10Q_to_folder(ticker, from_date=None, number_of_documents=40, doc_type='xbrl'):
@@ -24,7 +25,8 @@ def find_and_save_10Q_to_folder(ticker, from_date=None, number_of_documents=40, 
         from_date = datetime.today().strftime('%Y%m%d')
     crawler = SecCrawler()
     cik, company_name = get_cik_and_name_from_ticker(ticker)
-    crawler.filing_10Q(ticker, cik, company_name, from_date, number_of_documents, doc_type)
+    crawler.filing_10Q(ticker, cik, company_name, from_date,
+                       number_of_documents, doc_type)
 
 
 def find_and_save_20F_to_folder(ticker, from_date=None, number_of_documents=40, doc_type='xbrl'):
@@ -32,11 +34,12 @@ def find_and_save_20F_to_folder(ticker, from_date=None, number_of_documents=40, 
         from_date = datetime.today().strftime('%Y%m%d')
     crawler = SecCrawler()
     cik, company_name = get_cik_and_name_from_ticker(ticker)
-    crawler.filing_20F(ticker, cik, company_name, from_date, number_of_documents, doc_type)
+    crawler.filing_20F(ticker, cik, company_name, from_date,
+                       number_of_documents, doc_type)
 
 
 def get_cik_and_name_from_ticker(ticker):
-    URL = 'http://www.sec.gov/cgi-bin/browse-edgar?CIK=%s&Find=Search&owner=exclude&action=getcompany' %ticker
+    URL = 'http://www.sec.gov/cgi-bin/browse-edgar?CIK=%s&Find=Search&owner=exclude&action=getcompany' % ticker
     data = requests.get(URL).content.decode('utf-8')
     CIK_RE = re.compile(r'.*CIK=(\d{10}).*')
     cik_find = CIK_RE.findall(data)
@@ -47,7 +50,7 @@ def get_cik_and_name_from_ticker(ticker):
     else:
         print('could not find cik number...')
         cik_find = None
-    
+
     name_RE = re.compile(r'companyName">(.+?)<')
     name_find = name_RE.findall(data)
     if type(name_find) == str:
@@ -59,7 +62,6 @@ def get_cik_and_name_from_ticker(ticker):
         name_find = None
 
     return cik_find, name_find
-
 
 
 def get_reports_list(ticker, report_type='10-K', file_type='xbrl', data_folder='./SEC-Edgar-Data/'):
@@ -78,7 +80,7 @@ def get_reports_list(ticker, report_type='10-K', file_type='xbrl', data_folder='
     return files
 
 
-def get_historical_stock_price(ticker, years=10, api='WTD'):
+def get_historical_stock_price(ticker, years=10, api='simfin'):
     '''
     use world trading data to get stock price history (need to have api key set in config.py file) 
     '''
@@ -92,6 +94,28 @@ def get_historical_stock_price(ticker, years=10, api='WTD'):
         df = pd.DataFrame.from_dict(data['history'], orient='index')
         df.index = pd.to_datetime(df.index)
         df = df.apply(pd.to_numeric, errors='coerce')
+    elif api == "simfin":
+        request_url = "https://simfin.com/api/v1/info/find-id/ticker/%s?api-key=%s" % (
+            ticker, simfin_api_key)
+        content = requests.get(request_url)
+        data = content.json()
+        if "error" in data or len(data) < 1:
+            return None
+        else:
+            sim_id = data[0]['simId']
+
+        request_url = "https://simfin.com/api/v1/companies/id/%s/shares/prices?api-key=%s&start=%s" % (
+            sim_id, simfin_api_key, start_date)
+        content = requests.get(request_url)
+        data = content.json()
+        df = pd.DataFrame(data['priceData'])
+        df.rename(columns={'closeAdj': 'close'}, inplace=True)
+        df.set_index('date', inplace=True)
+        df.index = pd.to_datetime(df.index)
+        df = df.apply(pd.to_numeric, errors='coerce')
+        df = df.reindex(index=df.index[::-1])
+        set_trace()
+
     return df
 
 
@@ -111,4 +135,3 @@ def estimate_stock_split_adjustments(stock_count):
         adjusted_count.iloc[idx] = count * multiplier
 
     return adjusted_count
-
