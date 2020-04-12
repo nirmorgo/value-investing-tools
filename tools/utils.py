@@ -1,4 +1,4 @@
-from crawler import SecCrawler
+from tools.crawler import SecCrawler
 import re
 import requests
 import os
@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 # add config.py file which contains https://www.worldtradingdata.com/ API key
-from config import WTD_api_key, simfin_api_key
+from config.config import WTD_api_key, simfin_api_key
 from ipdb import set_trace
 
 

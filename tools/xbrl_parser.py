@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 from ipdb import set_trace
 
-from xbrl_config import US_GAPP_TAGS_LIST, ALTERNATIVE_TAG_NAMES
+from config.xbrl_config import US_GAPP_TAGS_LIST, ALTERNATIVE_TAG_NAMES
 
 
 class XBRL:
@@ -64,7 +64,7 @@ class XBRL:
                         else:
                             continue
                     elif enddate.month >= 3:
-                        # If we don't use DEI data we take a rule of thumb of common year end months
+                        # If we don't use DEI data we take a rule of thumb of common year-end months
                         year = enddate.year
                     else:
                         year = startdate.year

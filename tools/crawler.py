@@ -11,9 +11,7 @@ import datetime
 import re
 from tqdm import tqdm
 
-DEFAULT_DATA_PATH = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '.', 'SEC-Edgar-Data'))
-
+DEFAULT_DATA_PATH = os.path.join(os.getcwd(), "SEC-Edgar-Data", "")
 
 class SecCrawler(object):
 

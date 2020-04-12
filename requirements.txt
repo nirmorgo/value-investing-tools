@@ -1,0 +1,6 @@
+numpy==1.16.4
+pandas==0.24.2
+requests==2.22.0
+tqdm==4.32.2
+ipdb==0.12
+beautifulsoup4==4.9.0

@@ -3,10 +3,8 @@ import requests
 import argparse
 import pandas as pd
 import numpy as np
-from utils import find_and_save_10K_to_folder, find_and_save_10Q_to_folder, find_and_save_20F_to_folder
-from utils import get_historical_stock_price, get_reports_list, estimate_stock_split_adjustments
-from valuation_funcs import calculate_cagr_of_time_series, calc_growth_at_normalized_PE, calc_owner_earnings, DCF_FCF, calculate_ROIC
-from xbrl_parser import XBRL
+from tools import utils, valuation_funcs
+from tools.xbrl_parser import XBRL
 from ipdb import set_trace
 
 parser = argparse.ArgumentParser(description='Optional app description')
@@ -27,13 +25,13 @@ def load_all_historical_10K(ticker, download_latest=True, foreign=False):
     if foreign:
         report_type = '20-F'
         if download_latest:
-            find_and_save_20F_to_folder(ticker, number_of_documents=10)
+            utils.find_and_save_20F_to_folder(ticker, number_of_documents=10)
     else:
         report_type = '10-K'
         if download_latest:
-            find_and_save_10K_to_folder(ticker, number_of_documents=10)
+            utils.find_and_save_10K_to_folder(ticker, number_of_documents=10)
 
-    files = get_reports_list(ticker, report_type=report_type)
+    files = utils.get_reports_list(ticker, report_type=report_type)
     use_dei = not(args.no_dei_data)
     xbrl = XBRL(use_dei=use_dei)
     for file in files:
@@ -44,12 +42,12 @@ def load_all_historical_10K(ticker, download_latest=True, foreign=False):
 def load_latest_quarters(ticker, download_latest=True, foreign=False):
     ticker = ticker.lower()
     if download_latest:
-        find_and_save_10Q_to_folder(ticker, number_of_documents=5)
-    files_10q = get_reports_list(ticker, report_type='10-Q')
+        utils.find_and_save_10Q_to_folder(ticker, number_of_documents=5)
+    files_10q = utils.get_reports_list(ticker, report_type='10-Q')
     if len(files_10q) <= 1:
         print('could not find %s quarters reports - so no TTM data' % ticker)
         return None
-    files_10k = get_reports_list(ticker, report_type='10-K')
+    files_10k = utils.get_reports_list(ticker, report_type='10-K')
     xbrl = XBRL()
     for file in files_10k:
         xbrl.load_10Q_xbrl_file(file)
@@ -74,7 +72,7 @@ def get_TTM_data(ticker, download_latest=True, foreign=False):
 
 def calculate_key_values(data):
     key_values = pd.DataFrame()
-    key_values['ROIC'] = calculate_ROIC(data)
+    key_values['ROIC'] = valuation_funcs.calculate_ROIC(data)
     key_values['BookValuePerShare'] = data['StockholdersEquity'].divide(
         data['NumberOfSharesAdjusted'])
     key_values['EarningPerShare(Diluted)'] = data['NetIncomeLoss'].divide(
@@ -99,15 +97,15 @@ def main():
 
     data = data.iloc[1:]
     data.loc['TTM'] = get_TTM_data(ticker, args.download, args.foreign)
-    data['NumberOfDilutedSharesAdjusted'] = estimate_stock_split_adjustments(
+    data['NumberOfDilutedSharesAdjusted'] = utils.estimate_stock_split_adjustments(
         data['NumberOfDilutedShares'])
-    data['NumberOfSharesAdjusted'] = estimate_stock_split_adjustments(
+    data['NumberOfSharesAdjusted'] = utils.estimate_stock_split_adjustments(
         data['NumberOfShares'])
     data['NumberOfDilutedSharesAdjusted'].fillna(
         data['NumberOfSharesAdjusted'], inplace=True)
     data = data.iloc[-10:] # use only data from last decade
     years = int(data.index[-2] - data.index[0] + 1)
-    daily_prices = get_historical_stock_price(ticker, years)
+    daily_prices = utils.get_historical_stock_price(ticker, years)
 
     monthly_prices = daily_prices.close.resample('M').last()
     monthly_idxs = monthly_prices.index.to_list()
@@ -135,32 +133,27 @@ def main():
     print()
     print('-------------------------------------------------------------------------------------')
     print('Book Value Per Share Growth:')
-    book_value_per_share_growth = calculate_cagr_of_time_series(
-        key_values['BookValuePerShare'])
+    book_value_per_share_growth = valuation_funcs.calculate_cagr_of_time_series(key_values['BookValuePerShare'])
     print(book_value_per_share_growth)
     print()
     print('-------------------------------------------------------------------------------------')
     print('Earning Per Share (Diluted) Growth:')
-    eps_growth = calculate_cagr_of_time_series(
-        key_values['EarningPerShare(Diluted)'])
+    eps_growth = valuation_funcs.calculate_cagr_of_time_series(key_values['EarningPerShare(Diluted)'])
     print(eps_growth)
     print()
     print('-------------------------------------------------------------------------------------')
     print('OI (or EBIT):')
-    oi_growth = calculate_cagr_of_time_series(
-        key_values['OI (or EBIT)'])
+    oi_growth = valuation_funcs.calculate_cagr_of_time_series(key_values['OI (or EBIT)'])
     print(oi_growth)
     print()
     print('-------------------------------------------------------------------------------------')
     print('Revenue Per Share (Diluted) Growth:')
-    revenue_per_share_growth = calculate_cagr_of_time_series(
-        key_values['RevenuePerShare(Diluted)'])
+    revenue_per_share_growth = valuation_funcs.calculate_cagr_of_time_series(key_values['RevenuePerShare(Diluted)'])
     print(revenue_per_share_growth)
     print()
     print('-------------------------------------------------------------------------------------')
     print('Free Cash Flow Per Share (Diluted) Growth:')
-    free_cash_flow_growth = calculate_cagr_of_time_series(
-        key_values['FreeCashFlowPerShare(Diluted)'])
+    free_cash_flow_growth = valuation_funcs.calculate_cagr_of_time_series(key_values['FreeCashFlowPerShare(Diluted)'])
     print(free_cash_flow_growth)
     print()
     print()
@@ -170,8 +163,11 @@ def main():
     print('Value estimation with "Growth At Normalized P/E" technique:')
     print('-------------------------------------------------------------------------------------')
 
-    cagrs = revenue_per_share_growth.loc['CAGR'].values.tolist() + eps_growth.loc['CAGR'].values.tolist(
-    ) + book_value_per_share_growth.loc['CAGR'].values.tolist() + free_cash_flow_growth.loc['CAGR'].values.tolist()
+    cagrs = revenue_per_share_growth.loc['CAGR'].values.tolist()
+    cagrs += eps_growth.loc['CAGR'].values.tolist() 
+    cagrs += oi_growth.loc['CAGR'].values.tolist() 
+    cagrs += book_value_per_share_growth.loc['CAGR'].values.tolist() 
+    cagrs += free_cash_flow_growth.loc['CAGR'].values.tolist()
     valid_cagrs = []
     for cagr in cagrs:
         try:
@@ -182,23 +178,20 @@ def main():
     try:
         # capping the default growth rate estimation in 5-15% range
         GR_default = min(max(np.mean(valid_cagrs), 5), 15)
-        GR_estimation = input(
-            'Estimate growth rate in %% (if nothing entered, %d%% is taken): ' % GR_default)
+        GR_estimation = input('Estimate growth rate in %% (if nothing entered, %d%% is taken): ' % GR_default)
         GR_estimation = int(GR_estimation or GR_default)
         pes = key_values['P/E'].values
         pes = pes[~np.isnan(pes)]
         default_pe_estimation = max(np.median(pes), 5) * 1.1
-        normalized_pe_estimation = input(
-            "Estimate normalized P/E estimation (if nothing entered, %.2f is taken):" % default_pe_estimation)
-        normalized_pe_estimation = float(
-            normalized_pe_estimation or default_pe_estimation)
+        normalized_pe_estimation = input("Estimate normalized P/E estimation (if nothing entered, %.2f is taken):" % default_pe_estimation)
+        normalized_pe_estimation = float(normalized_pe_estimation or default_pe_estimation)
         eps_ttm = key_values.loc['TTM']['EarningPerShare(Diluted)']
         if np.isnan(eps_ttm):
             eps_ttm = key_values.iloc[-2]['EarningPerShare(Diluted)']
         print("Growth rate estimation: %d%%, future P/E estimation: %.2f" %
             (GR_estimation, normalized_pe_estimation))
         print("Fair value is estimated in the range of $%.2f - $%.2f" %
-            (calc_growth_at_normalized_PE(eps_ttm, normalized_pe_estimation, GR_estimation)))
+            (valuation_funcs.calc_growth_at_normalized_PE(eps_ttm, normalized_pe_estimation, GR_estimation)))
     except:
         print('not enough data...')
 
@@ -208,7 +201,7 @@ def main():
     print('Value estimation with "Owner Earnings" technique:')
     print('-------------------------------------------------------------------------------------')
     try:
-        owner_earnings = calc_owner_earnings(data.iloc[-2])
+        owner_earnings = valuation_funcs.calc_owner_earnings(data.iloc[-2])
         if owner_earnings is not None:
             market_cap = daily_prices.iloc[-1].close * \
                 data.iloc[-2]['NumberOfShares']
@@ -238,7 +231,7 @@ def main():
         FCF_GR = GR_default
     try:
         latest_FCF = key_values['FreeCashFlowPerShare(Diluted)'].dropna().iloc[-1]
-        dcf_low, dcf_high = DCF_FCF(latest_FCF, growth_rate=FCF_GR)
+        dcf_low, dcf_high = valuation_funcs.DCF_FCF(latest_FCF, growth_rate=FCF_GR)
         print("Fair value is estimated in the range of $%.2f - $%.2f" %
             (dcf_low, dcf_high))
     except:
